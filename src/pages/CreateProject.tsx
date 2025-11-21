@@ -12,8 +12,9 @@ import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
 import { publishProjectToNostr, ProjectData, PublishResult } from "@/lib/publishProject";
 import type { LanaSystemParameters } from "@/types/nostr";
-import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft, Home, User, Heart } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -182,7 +183,7 @@ const CreateProject = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-16">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <Button
@@ -425,6 +426,37 @@ const CreateProject = () => {
           </Card>
         )}
       </main>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+        <TabsList className="w-full h-16 grid grid-cols-3 rounded-none bg-background">
+          <TabsTrigger 
+            value="all" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/dashboard')}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs">All</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="my" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/my-projects')}
+          >
+            <User className="h-5 w-5" />
+            <span className="text-xs">My</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="donations" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/dashboard')}
+          >
+            <Heart className="h-5 w-5" />
+            <span className="text-xs">Donations</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
       <Footer />
     </div>
   );
