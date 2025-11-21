@@ -63,6 +63,7 @@ const Dashboard = () => {
               <TabsTrigger 
                 value="my" 
                 className="flex flex-col gap-1 data-[state=active]:text-primary"
+                onClick={() => navigate('/my-projects')}
               >
                 <User className="h-5 w-5" />
                 <span className="text-xs">My</span>
