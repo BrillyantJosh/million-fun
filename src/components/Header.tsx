@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Coins } from "lucide-react";
 import { NostrDataDialog } from "./NostrDataDialog";
+import { Link } from "react-router-dom";
 
 export const Header = () => {
   return (
@@ -26,12 +27,11 @@ export const Header = () => {
           </nav>
           <div className="flex items-center gap-4">
             <NostrDataDialog />
-            <Button variant="outline">
-              Sign in
-            </Button>
-            <Button>
-              Create project
-            </Button>
+            <Link to="/login">
+              <Button variant="outline">
+                Sign in
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
