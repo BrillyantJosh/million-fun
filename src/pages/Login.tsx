@@ -105,25 +105,20 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!privateKey.trim()) {
+    const wif = privateKey.trim();
+
+    if (!wif) {
       toast.error("Please enter your LANA private key (WIF)");
       return;
     }
 
-    // Basic WIF validation
-    const wifPattern = /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/;
-    if (!wifPattern.test(privateKey.trim())) {
-      toast.error("Invalid LANA private key format. Please check and try again.");
-      return;
-    }
-
     try {
-      // Convert WIF to wallet and Nostr identifiers
-      const result = await convertWifToIds(privateKey.trim());
+      // Convert WIF to wallet and Nostr identifiers (validates checksum and prefix)
+      const result = await convertWifToIds(wif);
       
       // Save session
       saveUserSession({
-        privateKey: privateKey.trim(),
+        privateKey: wif,
         ...result
       });
       
@@ -131,7 +126,7 @@ const Login = () => {
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(`Failed to sign in: ${error.message || "Invalid private key"}`);
+      toast.error(`Failed to sign in: ${error.message || "Invalid LANA private key"}`);
     }
   };
 
