@@ -49,24 +49,24 @@ export const ProjectCard = ({ project, onDonate }: ProjectCardProps) => {
           </div>
           <Progress value={percentage} className="h-2" />
           <div className="text-sm font-medium text-primary">
-            {percentage.toFixed(0)}% doseženo
+            {percentage.toFixed(0)}% achieved
           </div>
         </div>
 
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            <span>{project.backers} podpornikov</span>
+            <span>{project.backers} backers</span>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            <span>{project.daysLeft} dni</span>
+            <span>{project.daysLeft} days</span>
           </div>
         </div>
 
         <div className="pt-2 border-t border-border">
           <p className="text-xs text-muted-foreground">
-            Ustvaril: <span className="font-medium text-foreground">{project.creator}</span>
+            Created by: <span className="font-medium text-foreground">{project.creator}</span>
           </p>
         </div>
       </CardContent>
@@ -76,7 +76,7 @@ export const ProjectCard = ({ project, onDonate }: ProjectCardProps) => {
           className="w-full"
           size="lg"
         >
-          Doniraj z LANA
+          Donate with LANA
         </Button>
       </CardFooter>
     </Card>

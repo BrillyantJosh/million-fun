@@ -8,19 +8,19 @@ export const Hero = () => {
         <div className="grid gap-12 lg:grid-cols-2 lg:gap-8 items-center">
           <div className="space-y-6">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl text-foreground">
-              Podpri projekte s{" "}
-              <span className="text-primary">Lana</span> kripto valuto
+              Support projects with{" "}
+              <span className="text-primary">Lana</span> cryptocurrency
             </h1>
             <p className="text-lg text-muted-foreground md:text-xl">
-              Prva slovenska crowdfunding platforma, ki omogoča donacije izključno z Lana kriptovaluto. 
-              Podprite projekte, ki vam veliko pomenijo.
+              The first Slovenian crowdfunding platform that enables donations exclusively with Lana cryptocurrency. 
+              Support projects that matter to you.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="text-lg">
-                Razišči Projekte
+                Explore Projects
               </Button>
               <Button size="lg" variant="outline" className="text-lg">
-                Kako deluje?
+                How does it work?
               </Button>
             </div>
           </div>

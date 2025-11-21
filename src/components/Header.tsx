@@ -15,22 +15,22 @@ export const Header = () => {
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#" className="text-foreground hover:text-primary transition-colors font-medium">
-              Projekti
+              Projects
             </a>
             <a href="#" className="text-foreground hover:text-primary transition-colors font-medium">
-              Kako deluje
+              How it works
             </a>
             <a href="#" className="text-foreground hover:text-primary transition-colors font-medium">
-              O nas
+              About us
             </a>
           </nav>
           <div className="flex items-center gap-4">
             <NostrDataDialog />
             <Button variant="outline">
-              Prijava
+              Sign in
             </Button>
             <Button>
-              Ustvari projekt
+              Create project
             </Button>
           </div>
         </div>
