@@ -29,6 +29,7 @@ const DonatePage = () => {
     currency: string;
     walletId: string;
     fiatGoal: string;
+    ownerHex: string;
   } | null>(null);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
@@ -105,7 +106,8 @@ const DonatePage = () => {
           title: getTag("title") || "Untitled Project",
           currency: getTag("currency") || "EUR",
           walletId: getTag("wallet") || "",
-          fiatGoal: getTag("fiat_goal") || "0"
+          fiatGoal: getTag("fiat_goal") || "0",
+          ownerHex: event.pubkey
         });
       } catch (error) {
         console.error("Error fetching project:", error);
@@ -320,10 +322,51 @@ const DonatePage = () => {
         port: server.port
       }));
 
+      // Derive private key hex from WIF
+      const base58Decode = (str: string): Uint8Array => {
+        const ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        if (str.length === 0) return new Uint8Array(0);
+        let bytes = [0];
+        for (let i = 0; i < str.length; i++) {
+          const c = str[i];
+          const p = ALPHABET.indexOf(c);
+          if (p < 0) throw new Error('Invalid base58 character');
+          let carry = p;
+          for (let j = 0; j < bytes.length; j++) {
+            carry += bytes[j] * 58;
+            bytes[j] = carry & 0xff;
+            carry >>= 8;
+          }
+          while (carry > 0) {
+            bytes.push(carry & 0xff);
+            carry >>= 8;
+          }
+        }
+        let leadingOnes = 0;
+        for (let i = 0; i < str.length && str[i] === '1'; i++) {
+          leadingOnes++;
+        }
+        const result = new Uint8Array(leadingOnes + bytes.length);
+        bytes.reverse();
+        result.set(bytes, leadingOnes);
+        return result;
+      };
+      
+      const privateKeyBytes = base58Decode(wifKey);
+      const privateKeyHex = Array.from(privateKeyBytes.slice(1, 33))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      // Calculate fiat amount
+      const cleanAmount = donationAmount.replace(/,/g, '');
+      const fiatAmount = parseFloat(cleanAmount).toFixed(2);
+
       console.log("Processing donation:", {
         recipient: projectData.walletId,
         amountLana: lanaAmount,
-        electrumServers: electrumServers.length
+        electrumServers: electrumServers.length,
+        projectId,
+        projectOwnerHex: projectData.ownerHex
       });
 
       const { data, error } = await supabase.functions.invoke('process-lana-donation', {
@@ -331,7 +374,14 @@ const DonatePage = () => {
           recipient_address: projectData.walletId,
           amount_lana: lanaAmount,
           private_key: wifKey,
-          electrum_servers: electrumServers
+          electrum_servers: electrumServers,
+          project_id: projectId,
+          project_owner_hex: projectData.ownerHex,
+          supporter_private_key_hex: privateKeyHex,
+          amount_fiat: fiatAmount,
+          currency: projectData.currency,
+          message: message,
+          relays: systemParams.relays
         }
       });
 
@@ -344,19 +394,11 @@ const DonatePage = () => {
         throw new Error(data?.error || "Transaction failed");
       }
 
-      console.log("Transaction successful:", data.txid);
+      console.log("Transaction successful:", data);
 
-      toast({
-        title: "Donation Successful! 🎉",
-        description: `Donated ${lanaAmount.toLocaleString()} LANA to the project. Transaction ID: ${data.txid.substring(0, 16)}...`,
-      });
-
-      setShowWifDialog(false);
-      setWifKey("");
+      // Navigate to result page with detailed report
+      navigate('/donation-result', { state: { result: data } });
       
-      // TODO: Create KIND 60200 Nostr event to record donation
-      
-      navigate(`/project/${projectId}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       console.error("Donation failed:", errorMsg);
