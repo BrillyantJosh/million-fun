@@ -27,3 +27,12 @@ export const clearUserSession = () => {
 export const isAuthenticated = (): boolean => {
   return getUserSession() !== null;
 };
+
+export const getSystemParameters = async () => {
+  const cached = sessionStorage.getItem("lana_system_parameters");
+  if (cached) {
+    const data = JSON.parse(cached);
+    return data.parameters;
+  }
+  return null;
+};
