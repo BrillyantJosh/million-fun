@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { QrCode, Key, Coins } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
+import { convertWifToIds } from "@/lib/lanaWallet";
+import { saveUserSession } from "@/lib/auth";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -100,7 +102,7 @@ const Login = () => {
     setIsScanning(false);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!privateKey.trim()) {
@@ -108,18 +110,29 @@ const Login = () => {
       return;
     }
 
-    // Basic WIF validation (starts with 5, K, or L and is 51 or 52 characters)
+    // Basic WIF validation
     const wifPattern = /^[5KL][1-9A-HJ-NP-Za-km-z]{50,51}$/;
     if (!wifPattern.test(privateKey.trim())) {
       toast.error("Invalid LANA private key format. Please check and try again.");
       return;
     }
 
-    // Store the private key in session storage (for demo purposes)
-    sessionStorage.setItem("lana_private_key", privateKey.trim());
-    
-    toast.success("Successfully signed in with LANA!");
-    navigate("/");
+    try {
+      // Convert WIF to wallet and Nostr identifiers
+      const result = await convertWifToIds(privateKey.trim());
+      
+      // Save session
+      saveUserSession({
+        privateKey: privateKey.trim(),
+        ...result
+      });
+      
+      toast.success("Successfully signed in with LANA!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(`Failed to sign in: ${error.message || "Invalid private key"}`);
+    }
   };
 
   return (
