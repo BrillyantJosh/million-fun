@@ -160,15 +160,38 @@ const DonatePage = () => {
       setCheckingBalance(true);
       try {
         const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
-        if (!systemParamsStr) return;
+        if (!systemParamsStr) {
+          console.error('System parameters not found in session');
+          setWalletBalance(null);
+          return;
+        }
 
         const raw = JSON.parse(systemParamsStr);
         const systemParams: LanaSystemParameters = raw.parameters ?? raw;
         
-        const electrumServers = (systemParams.electrum || []).map((server: any) => ({
+        console.log('System parameters:', systemParams);
+        console.log('Electrum servers raw:', systemParams.electrum);
+        
+        if (!systemParams.electrum || systemParams.electrum.length === 0) {
+          console.error('No Electrum servers configured in system parameters');
+          toast({
+            title: "Configuration Error",
+            description: "Electrum servers not configured. Cannot check wallet balance.",
+            variant: "destructive"
+          });
+          setWalletBalance(null);
+          return;
+        }
+
+        const electrumServers = systemParams.electrum.map((server: any) => ({
           host: server.host,
           port: server.port.toString()
         }));
+
+        console.log('Calling edge function with:', {
+          wallet_addresses: [selectedWalletId],
+          electrum_servers: electrumServers
+        });
 
         const { data, error } = await supabase.functions.invoke('check-wallet-balance', {
           body: {
@@ -179,9 +202,16 @@ const DonatePage = () => {
 
         if (error) {
           console.error('Error checking balance:', error);
+          toast({
+            title: "Balance Check Failed",
+            description: "Unable to check wallet balance. Please try again.",
+            variant: "destructive"
+          });
           setWalletBalance(null);
           return;
         }
+
+        console.log('Balance check response:', data);
 
         if (data?.wallets?.[0]) {
           setWalletBalance(data.wallets[0].balance);
@@ -189,6 +219,11 @@ const DonatePage = () => {
         }
       } catch (error) {
         console.error('Failed to check balance:', error);
+        toast({
+          title: "Balance Check Failed",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive"
+        });
         setWalletBalance(null);
       } finally {
         setCheckingBalance(false);
