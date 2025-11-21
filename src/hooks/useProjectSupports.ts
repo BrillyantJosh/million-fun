@@ -69,32 +69,13 @@ export const useProjectSupports = (projectId: string | null) => {
         console.log("🔍 Fetching supports with filter:", JSON.stringify(filter, null, 2));
         console.log("🔍 From relays:", relays);
 
-        // Use subscribeMany instead of querySync to allow more time for events to arrive
-        const events: Event[] = [];
-        const sub = pool.subscribeMany(
-          relays,
-          filter,
-          {
-            onevent(event) {
-              console.log("📥 Received support event:", event.id);
-              events.push(event);
-            },
-            oneose() {
-              console.log("✅ EOSE received from relay");
-            }
-          }
-        );
-
-        // Wait for events to arrive (give it 3 seconds)
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        sub.close();
-        pool.close(relays);
-        
+        const events = await pool.querySync(relays, filter);
         console.log("💰 Found support events:", events.length);
         if (events.length > 0) {
           console.log("💰 First event:", events[0]);
           console.log("💰 First event tags:", events[0].tags);
         }
+        pool.close(relays);
 
         const supports: ProjectSupport[] = [];
         const uniqueSupporters = new Set<string>();
