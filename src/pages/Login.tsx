@@ -113,16 +113,19 @@ const Login = () => {
       return;
     }
 
+    let loadingToast: string | number | undefined;
+
     try {
       // Step 1: Convert WIF to wallet and Nostr identifiers
-      toast.loading("Validating private key...");
+      loadingToast = toast.loading("Validating private key...");
       const result = await convertWifToIds(wif);
       
       // Step 2: Fetch Nostr profile from relays
-      toast.loading("Fetching your profile from Nostr network...");
+      toast.loading("Fetching your profile from Nostr network...", { id: loadingToast });
       const profileData = await fetchNostrProfile(result.nostrHexId);
       
       if (!profileData) {
+        toast.dismiss(loadingToast);
         toast.error("No profile found for this account. Please create a profile first.");
         return;
       }
@@ -135,10 +138,14 @@ const Login = () => {
         profileTags: profileData.tags
       });
       
+      toast.dismiss(loadingToast);
       toast.success(`Welcome back, ${profileData.profile.display_name}!`);
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
       toast.error(`Failed to sign in: ${error.message || "Invalid LANA private key"}`);
     }
   };
