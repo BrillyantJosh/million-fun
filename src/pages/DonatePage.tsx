@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -8,14 +8,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
-import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Camera, X } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import type { LanaSystemParameters } from "@/types/nostr";
 import { SimplePool, type Filter } from "nostr-tools";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Html5Qrcode } from "html5-qrcode";
 
 const DonatePage = () => {
   const navigate = useNavigate();
@@ -38,6 +40,9 @@ const DonatePage = () => {
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [checkingBalance, setCheckingBalance] = useState(false);
   const [fxRate, setFxRate] = useState<number | null>(null);
+  const [showWifDialog, setShowWifDialog] = useState(false);
+  const [wifKey, setWifKey] = useState("");
+  const [showQrScanner, setShowQrScanner] = useState(false);
 
   useEffect(() => {
     const session = getUserSession();
@@ -152,9 +157,11 @@ const DonatePage = () => {
         return;
       }
 
-      // Convert FIAT to LANA
-      const lana = fiatAmount * fxRate;
+      // Convert FIAT to LANA (divide by FX rate)
+      const lana = fiatAmount / fxRate;
       setLanaAmount(Math.round(lana * 100) / 100);
+      
+      console.log(`Converting ${fiatAmount} FIAT to LANA: ${fiatAmount} / ${fxRate} = ${lana} LANA`);
 
       // Check wallet balance
       setCheckingBalance(true);
@@ -249,11 +256,6 @@ const DonatePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const session = getUserSession();
-    if (!session || !projectData) {
-      return;
-    }
-
     if (!selectedWalletId) {
       toast({ 
         title: "Validation Error", 
@@ -273,25 +275,58 @@ const DonatePage = () => {
       return;
     }
 
+    if (walletBalance !== null && lanaAmount !== null && walletBalance < lanaAmount) {
+      toast({ 
+        title: "Insufficient Funds", 
+        description: "Your wallet does not have enough LANA for this donation", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Open WIF dialog
+    setShowWifDialog(true);
+  };
+
+  const handleConfirmWithWif = async () => {
+    if (!wifKey.trim()) {
+      toast({ 
+        title: "WIF Key Required", 
+        description: "Please enter your WIF private key to sign the transaction", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    const session = getUserSession();
+    if (!session || !projectData) {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // TODO: Implement actual donation logic
-      // This would involve creating a KIND 60200 event or triggering the transaction
+      const cleanAmount = donationAmount.replace(/,/g, '');
+      
+      // TODO: Implement actual donation logic with WIF signing
       console.log("Donation details:", {
         projectId,
         fromWallet: selectedWalletId,
         toWallet: projectData.walletId,
-        amount: cleanAmount,
+        amountFiat: cleanAmount,
+        amountLana: lanaAmount,
         currency: projectData.currency,
-        message
+        message,
+        wifKey: '***' // Don't log actual key
       });
 
       toast({
         title: "Donation Submitted!",
-        description: `Donation of ${cleanAmount} ${projectData.currency} initiated`,
+        description: `Donation of ${cleanAmount} ${projectData.currency} (${lanaAmount} LANA) initiated`,
       });
 
+      setShowWifDialog(false);
+      setWifKey("");
       navigate(`/project/${projectId}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
@@ -303,6 +338,52 @@ const DonatePage = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  const startQrScanner = async () => {
+    setShowQrScanner(true);
+    
+    try {
+      const html5QrCode = new Html5Qrcode("qr-reader");
+      scannerRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+          setWifKey(decodedText);
+          stopQrScanner();
+          toast({
+            title: "QR Code Scanned",
+            description: "WIF key loaded from QR code"
+          });
+        },
+        () => {
+          // Ignore scan failures
+        }
+      );
+    } catch (error) {
+      console.error("QR scanner error:", error);
+      toast({
+        title: "Scanner Error",
+        description: "Unable to start camera. Please enter WIF manually.",
+        variant: "destructive"
+      });
+      setShowQrScanner(false);
+    }
+  };
+
+  const stopQrScanner = () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop().catch(console.error);
+      scannerRef.current = null;
+    }
+    setShowQrScanner(false);
   };
 
   if (isLoading) {
@@ -458,19 +539,110 @@ const DonatePage = () => {
                   }
                   className="flex-1"
                 >
+                  Continue to Sign
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* WIF Dialog */}
+        <Dialog open={showWifDialog} onOpenChange={setShowWifDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Sign Transaction</DialogTitle>
+              <DialogDescription>
+                Enter your WIF private key to sign and broadcast the donation transaction
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <Alert>
+                <AlertDescription className="text-sm">
+                  <div className="font-semibold mb-1">Transaction Details:</div>
+                  <div className="space-y-1">
+                    <div>From: <span className="font-mono text-xs">{selectedWalletId}</span></div>
+                    <div>To: <span className="font-mono text-xs">{projectData?.walletId}</span></div>
+                    <div>Amount: {lanaAmount?.toLocaleString()} LANA ({donationAmount} {projectData?.currency})</div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {!showQrScanner ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="wif">WIF Private Key</Label>
+                    <Input
+                      id="wif"
+                      type="password"
+                      value={wifKey}
+                      onChange={(e) => setWifKey(e.target.value)}
+                      placeholder="Enter WIF key (e.g., K...)"
+                      className="font-mono"
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={startQrScanner}
+                      className="flex-1"
+                    >
+                      <Camera className="mr-2 h-4 w-4" />
+                      Scan QR Code
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Scanning QR Code...</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={stopQrScanner}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div id="qr-reader" className="rounded-lg overflow-hidden"></div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowWifDialog(false);
+                    setWifKey("");
+                    stopQrScanner();
+                  }}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmWithWif}
+                  disabled={isSubmitting || !wifKey.trim()}
+                  className="flex-1"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
                   ) : (
-                    "Confirm Donation"
+                    "Confirm & Send"
                   )}
                 </Button>
               </div>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
       <Footer />
       <BottomNav />
