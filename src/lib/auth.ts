@@ -1,9 +1,13 @@
+import type { NostrProfile, NostrProfileTags } from "@/types/nostrProfile";
+
 export interface UserSession {
   privateKey: string;
   walletId: string;
   nostrHexId: string;
   nostrNpubId: string;
   privateKeyHex: string;
+  profile?: NostrProfile;
+  profileTags?: NostrProfileTags;
 }
 
 export const saveUserSession = (session: UserSession) => {
@@ -17,6 +21,7 @@ export const getUserSession = (): UserSession | null => {
 
 export const clearUserSession = () => {
   sessionStorage.removeItem("lana_user_session");
+  sessionStorage.removeItem("lana_system_parameters");
 };
 
 export const isAuthenticated = (): boolean => {
