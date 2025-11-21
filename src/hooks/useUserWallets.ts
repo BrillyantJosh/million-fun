@@ -33,9 +33,11 @@ export const useUserWallets = () => {
       }
 
       try {
-        const systemParams: LanaSystemParameters = JSON.parse(systemParamsStr);
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
         const relays = systemParams.relays;
 
+        console.log('✅ System params loaded:', { hasRelays: !!relays, relayCount: relays?.length });
         console.log('🔍 Fetching wallets from relays:', relays);
         console.log('🔍 Looking for customer pubkey:', session.nostrHexId);
 
