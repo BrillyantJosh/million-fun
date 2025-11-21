@@ -391,7 +391,11 @@ const ProjectDetail = () => {
 
             <Separator />
 
-            <Button className="w-full" size="lg">
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={() => navigate(`/donate/${projectId}`)}
+            >
               Donate with LANA
             </Button>
           </div>
