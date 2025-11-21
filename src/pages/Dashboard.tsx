@@ -1,15 +1,15 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectGrid } from "@/components/ProjectGrid";
-import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Home, User, Heart, Plus } from "lucide-react";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("all");
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col pb-16">
@@ -29,7 +29,7 @@ const Dashboard = () => {
                   </p>
                 </div>
                 <Button 
-                  onClick={() => setCreateDialogOpen(true)}
+                  onClick={() => navigate('/create-project')}
                   size="lg"
                   className="gap-2"
                 >
@@ -79,11 +79,6 @@ const Dashboard = () => {
         </Tabs>
       </main>
       <Footer />
-      
-      <CreateProjectDialog 
-        open={createDialogOpen} 
-        onOpenChange={setCreateDialogOpen}
-      />
     </div>
   );
 };
