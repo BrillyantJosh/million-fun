@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { SimplePool, Filter } from "nostr-tools";
+import { SimplePool, type Filter, type Event } from "nostr-tools";
 import type { LanaSystemParameters } from "@/types/nostr";
 
 export interface ProjectSupport {
@@ -56,18 +56,26 @@ export const useProjectSupports = (projectId: string | null) => {
         }
 
         const pool = new SimplePool();
+        
+        // Debug: Check if projectId format is correct
+        console.log("🔍 ProjectId received:", projectId);
+        console.log("🔍 Filter project tag will be:", `project:${projectId}`);
+        
         const filter: Filter = {
           kinds: [60200],
           "#service": ["lanacrowd"],
           "#project": [`project:${projectId}`],
         };
 
-        console.log("🔍 Fetching supports with filter:", filter);
+        console.log("🔍 Fetching supports with filter:", JSON.stringify(filter, null, 2));
         console.log("🔍 From relays:", relays);
 
         const events = await pool.querySync(relays, filter);
         console.log("💰 Found support events:", events.length);
-        console.log("💰 Events:", events);
+        if (events.length > 0) {
+          console.log("💰 First event:", events[0]);
+          console.log("💰 First event tags:", events[0].tags);
+        }
         pool.close(relays);
 
         const supports: ProjectSupport[] = [];
