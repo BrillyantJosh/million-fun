@@ -62,7 +62,12 @@ export const useProjectSupports = (projectId: string | null) => {
           "#project": [`project:${projectId}`],
         };
 
+        console.log("🔍 Fetching supports with filter:", filter);
+        console.log("🔍 From relays:", relays);
+
         const events = await pool.querySync(relays, filter);
+        console.log("💰 Found support events:", events.length);
+        console.log("💰 Events:", events);
         pool.close(relays);
 
         const supports: ProjectSupport[] = [];
@@ -83,7 +88,12 @@ export const useProjectSupports = (projectId: string | null) => {
             const tx = event.tags.find((t) => t[0] === "tx")?.[1];
             const timestampPaid = event.tags.find((t) => t[0] === "timestamp_paid")?.[1];
 
-            if (!projectTag || !supporter || !amountFiat) continue;
+            if (!projectTag || !supporter || !amountFiat) {
+              console.log("⚠️ Skipping event - missing data:", { projectTag, supporter, amountFiat });
+              continue;
+            }
+
+            console.log("✅ Processing support:", { projectTag, supporter, amountFiat, currencyTag });
 
             currency = currencyTag || currency;
             const fiatAmount = parseFloat(amountFiat);
@@ -108,6 +118,13 @@ export const useProjectSupports = (projectId: string | null) => {
             console.error("Error parsing support event:", err);
           }
         }
+
+        console.log("📊 Final stats:", {
+          totalRaised,
+          currency,
+          backersCount: uniqueSupporters.size,
+          supportsCount: supports.length,
+        });
 
         setStats({
           totalRaised,
