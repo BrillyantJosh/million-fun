@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -182,7 +183,7 @@ const CreateProject = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-16">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">
         <Button
@@ -426,6 +427,7 @@ const CreateProject = () => {
         )}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 };
