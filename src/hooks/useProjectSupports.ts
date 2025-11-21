@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { SimplePool, Filter } from "nostr-tools";
-import { getSystemParameters } from "@/lib/auth";
+import type { LanaSystemParameters } from "@/types/nostr";
 
 export interface ProjectSupport {
   id: string;
@@ -36,12 +36,22 @@ export const useProjectSupports = (projectId: string | null) => {
     }
 
     const fetchSupports = async () => {
+      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      if (!systemParamsStr) {
+        setError("System parameters not found");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        const params = await getSystemParameters();
-        if (!params?.relays || params.relays.length === 0) {
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const relays = systemParams.relays;
+
+        if (!relays || relays.length === 0) {
           throw new Error("No relays configured");
         }
 
@@ -52,8 +62,8 @@ export const useProjectSupports = (projectId: string | null) => {
           "#project": [`project:${projectId}`],
         };
 
-        const events = await pool.querySync(params.relays, filter);
-        pool.close(params.relays);
+        const events = await pool.querySync(relays, filter);
+        pool.close(relays);
 
         const supports: ProjectSupport[] = [];
         const uniqueSupporters = new Set<string>();

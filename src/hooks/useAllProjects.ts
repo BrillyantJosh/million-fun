@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { SimplePool, Filter } from "nostr-tools";
-import { getSystemParameters } from "@/lib/auth";
+import type { LanaSystemParameters } from "@/types/nostr";
 
 export interface NostrProject {
   id: string;
@@ -25,13 +25,27 @@ export const useAllProjects = () => {
 
   useEffect(() => {
     const fetchAllProjects = async () => {
+      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      if (!systemParamsStr) {
+        setError("System parameters not found");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        const params = await getSystemParameters();
-        if (!params?.relays || params.relays.length === 0) {
-          throw new Error("No relays configured");
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const relays = systemParams.relays;
+
+        console.log('🌍 Fetching ALL projects from relays:', relays);
+
+        if (!relays || relays.length === 0) {
+          setError("No relays configured");
+          setLoading(false);
+          return;
         }
 
         const pool = new SimplePool();
@@ -40,8 +54,10 @@ export const useAllProjects = () => {
           "#service": ["lanacrowd"],
         };
 
-        const events = await pool.querySync(params.relays, filter);
-        pool.close(params.relays);
+        const events = await pool.querySync(relays, filter);
+        pool.close(relays);
+
+        console.log('🌍 Total events found:', events.length);
 
         // Deduplicate by 'd' tag (keep most recent)
         const projectMap = new Map<string, typeof events[0]>();
@@ -54,6 +70,8 @@ export const useAllProjects = () => {
             projectMap.set(dTag, event);
           }
         });
+
+        console.log('🌍 Unique projects after deduplication:', projectMap.size);
 
         const parsedProjects: NostrProject[] = [];
 
@@ -95,6 +113,7 @@ export const useAllProjects = () => {
           }
         }
 
+        console.log('🌍 Parsed projects:', parsedProjects);
         setProjects(parsedProjects);
       } catch (err) {
         console.error("Error fetching projects:", err);
