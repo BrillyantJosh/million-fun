@@ -43,9 +43,11 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
     if (systemParamsStr) {
       try {
-        const systemParams: LanaSystemParameters = JSON.parse(systemParamsStr);
-        const currencies = Object.keys(systemParams.fx);
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const currencies = Object.keys(systemParams.fx ?? {});
         setAvailableCurrencies(currencies);
+        console.log('✅ Loaded currencies:', currencies);
       } catch (error) {
         console.error("Failed to parse system parameters:", error);
       }
@@ -97,12 +99,14 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
 
     let relays: string[];
     try {
-      const systemParams: LanaSystemParameters = JSON.parse(systemParamsStr);
+      const raw = JSON.parse(systemParamsStr);
+      const systemParams: LanaSystemParameters = raw.parameters ?? raw;
       relays = systemParams.relays;
       
       if (!relays || relays.length === 0) {
         throw new Error("No relays configured");
       }
+      console.log('✅ Publishing to relays:', relays);
     } catch (error) {
       toast({ 
         title: "Error", 
