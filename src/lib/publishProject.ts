@@ -18,10 +18,8 @@ export interface ProjectData {
   currency: string;
   walletId: string;
   responsibilityStatement: string;
-  images?: Array<{ url: string; type: 'cover' | 'gallery' | 'other' }>;
-  videos?: Array<{ url: string; type: 'primary' | 'extra' | 'other' }>;
-  documents?: Array<{ url: string; type: 'pdf' | 'doc' | 'other' }>;
-  participants?: string[]; // Nostr hex pubkeys
+  videoUrl?: string;
+  images?: string[];
 }
 
 export interface PublishResult {
@@ -40,13 +38,16 @@ export async function publishProjectToNostr(
   // Generate unique project ID
   const projectUuid = crypto.randomUUID();
   
+  // Clean fiat goal (remove thousands separator)
+  const cleanFiatGoal = projectData.fiatGoal.replace(/,/g, '');
+  
   // Build tags array
   const tags: string[][] = [
     ["d", `project:${projectUuid}`],
     ["service", "lanacrowd"],
     ["title", projectData.title],
     ["short_desc", projectData.shortDesc],
-    ["fiat_goal", projectData.fiatGoal],
+    ["fiat_goal", cleanFiatGoal],
     ["currency", projectData.currency],
     ["wallet", projectData.walletId],
     ["responsibility_statement", projectData.responsibilityStatement],
@@ -54,31 +55,16 @@ export async function publishProjectToNostr(
     ["timestamp_created", Math.floor(Date.now() / 1000).toString()]
   ];
 
-  // Add optional participants
-  if (projectData.participants && projectData.participants.length > 0) {
-    projectData.participants.forEach(participantHex => {
-      tags.push(["p", participantHex, "participant"]);
-    });
+  // Add optional video
+  if (projectData.videoUrl) {
+    tags.push(["video", projectData.videoUrl, "primary"]);
   }
 
   // Add optional images
   if (projectData.images && projectData.images.length > 0) {
-    projectData.images.forEach(img => {
-      tags.push(["img", img.url, img.type]);
-    });
-  }
-
-  // Add optional videos
-  if (projectData.videos && projectData.videos.length > 0) {
-    projectData.videos.forEach(video => {
-      tags.push(["video", video.url, video.type]);
-    });
-  }
-
-  // Add optional documents
-  if (projectData.documents && projectData.documents.length > 0) {
-    projectData.documents.forEach(doc => {
-      tags.push(["file", doc.url, doc.type]);
+    projectData.images.forEach((imgUrl, idx) => {
+      const imgType = idx === 0 ? "cover" : "gallery";
+      tags.push(["img", imgUrl, imgType]);
     });
   }
 
