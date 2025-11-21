@@ -35,6 +35,7 @@ const CreateProject = () => {
     currency: "EUR",
     walletId: "",
     responsibilityStatement: "",
+    coverImage: "",
     videoUrl: "",
     images: []
   });
@@ -165,6 +166,7 @@ const CreateProject = () => {
         currency: "EUR",
         walletId: "",
         responsibilityStatement: "",
+        coverImage: "",
         videoUrl: "",
         images: []
       });
@@ -347,6 +349,34 @@ const CreateProject = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="coverImage">Cover Image (Main Project Image) *</Label>
+                  <Input
+                    id="coverImage"
+                    type="url"
+                    value={formData.coverImage}
+                    onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                    placeholder="https://example.com/cover-image.jpg"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This image will be displayed in project lists and at the top of your project page
+                  </p>
+                  {formData.coverImage && (
+                    <div className="mt-2 border rounded-lg overflow-hidden">
+                      <img 
+                        src={formData.coverImage} 
+                        alt="Cover preview" 
+                        className="w-full h-48 object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '';
+                          e.currentTarget.alt = 'Invalid image URL';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="videoUrl">YouTube Video (Optional)</Label>
                   <Input
                     id="videoUrl"
@@ -358,7 +388,10 @@ const CreateProject = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Project Images (Optional)</Label>
+                  <Label>Gallery Images (Optional)</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Add additional images to be displayed in the project gallery
+                  </p>
                   <div className="flex gap-2">
                     <Input
                       type="url"
