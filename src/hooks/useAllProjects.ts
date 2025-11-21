@@ -51,7 +51,7 @@ export const useAllProjects = () => {
         const pool = new SimplePool();
         const filter: Filter = {
           kinds: [31234],
-          "#service": ["lanacrowd"],
+          limit: 100
         };
 
         const events = await pool.querySync(relays, filter);
@@ -77,36 +77,37 @@ export const useAllProjects = () => {
 
         for (const event of projectMap.values()) {
           try {
-            const dTag = event.tags.find((t) => t[0] === "d")?.[1];
-            if (!dTag) continue;
+            // Helper functions matching useUserProjects
+            const getTag = (name: string) => {
+              const tag = event.tags.find((t: string[]) => t[0] === name);
+              return tag ? tag[1] : undefined;
+            };
 
-            const title = event.tags.find((t) => t[0] === "title")?.[1] || "Untitled";
-            const shortDesc = event.tags.find((t) => t[0] === "short_desc")?.[1] || "";
-            const fiatGoal = event.tags.find((t) => t[0] === "fiat_goal")?.[1] || "0";
-            const currency = event.tags.find((t) => t[0] === "currency")?.[1] || "EUR";
-            const coverImage = event.tags.find((t) => t[0] === "cover_image")?.[1] || "";
-            const videoUrl = event.tags.find((t) => t[0] === "video_url")?.[1] || "";
-            const walletId = event.tags.find((t) => t[0] === "wallet_id")?.[1] || "";
+            const projectId = getTag("d") || "";
+            const coverImages = event.tags.filter(
+              (t: string[]) => t[0] === "img" && t[2] === "cover"
+            );
 
-            const fullDesc = event.content || "";
-
-            const responsibilityTag = event.tags.find((t) => t[0] === "responsibility_statement");
-            const responsibilityStatement = responsibilityTag ? responsibilityTag[1] : undefined;
+            // Parse owner from tags (p tag with "owner" role) or fallback to pubkey
+            const ownerTag = event.tags.find(
+              (t: string[]) => t[0] === "p" && t[2] === "owner"
+            );
+            const owner = ownerTag ? ownerTag[1] : event.pubkey;
 
             parsedProjects.push({
-              id: dTag,
+              id: projectId.replace("project:", ""),
               eventId: event.id,
-              title,
-              shortDesc,
-              fullDesc,
-              fiatGoal,
-              currency,
-              coverImage,
-              videoUrl,
-              walletId,
-              owner: event.pubkey,
+              title: getTag("title") || "Untitled Project",
+              shortDesc: getTag("short_desc") || "",
+              fullDesc: event.content || "",
+              fiatGoal: getTag("fiat_goal") || "0",
+              currency: getTag("currency") || "EUR",
+              coverImage: coverImages.length > 0 ? coverImages[0][1] : "",
+              videoUrl: getTag("video") || "",
+              walletId: getTag("wallet") || "",
+              owner,
               createdAt: event.created_at,
-              responsibilityStatement,
+              responsibilityStatement: getTag("responsibility_statement"),
             });
           } catch (err) {
             console.error("Error parsing project event:", err);
