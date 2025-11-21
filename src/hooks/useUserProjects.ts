@@ -102,8 +102,23 @@ export const useUserProjects = () => {
             return;
           }
 
+          // Deduplicate by "d" tag, keeping the most recent event
+          const eventsByDTag = new Map<string, any>();
+          allEvents.forEach((event: any) => {
+            const dTag = event.tags.find((t: string[]) => t[0] === "d")?.[1];
+            if (dTag) {
+              const existing = eventsByDTag.get(dTag);
+              if (!existing || event.created_at > existing.created_at) {
+                eventsByDTag.set(dTag, event);
+              }
+            }
+          });
+
+          const uniqueEvents = Array.from(eventsByDTag.values());
+          console.log('📊 Unique events after deduplication:', uniqueEvents.length);
+
           // Parse projects from events
-          const parsedProjects: NostrProject[] = allEvents
+          const parsedProjects: NostrProject[] = uniqueEvents
             .filter(event => {
               // Only include events where user is the owner
               const ownerTags = event.tags.filter(
