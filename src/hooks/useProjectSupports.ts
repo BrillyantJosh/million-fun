@@ -73,7 +73,7 @@ export const useProjectSupports = (projectId: string | null) => {
         const events: Event[] = [];
         const sub = pool.subscribeMany(
           relays,
-          [filter],
+          filter,
           {
             onevent(event) {
               console.log("📥 Received support event:", event.id);
