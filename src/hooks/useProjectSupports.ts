@@ -58,15 +58,14 @@ export const useProjectSupports = (projectId: string | null) => {
         const pool = new SimplePool();
         
         console.log("🔍 ProjectId received:", projectId);
-        console.log("🔍 Filter project tag will be:", `project:${projectId}`);
+        console.log("🔍 Will filter supports for project tag:", `project:${projectId}`);
         
         const filter: Filter = {
           kinds: [60200],
-          "#service": ["lanacrowd"],
-          "#project": [`project:${projectId}`],
+          limit: 500,
         };
 
-        console.log("🔍 Fetching supports with filter:", JSON.stringify(filter, null, 2));
+        console.log("🔍 Raw Nostr filter (no tag filters):", JSON.stringify(filter, null, 2));
         console.log("🔍 From relays:", relays);
 
         const events = await pool.querySync(relays, filter);
@@ -84,7 +83,14 @@ export const useProjectSupports = (projectId: string | null) => {
 
         for (const event of events) {
           try {
+            const serviceTag = event.tags.find((t) => t[0] === "service")?.[1];
             const projectTag = event.tags.find((t) => t[0] === "project")?.[1];
+
+            // Filter by service and project on the client side to avoid relay tag-index issues
+            if (serviceTag !== "lanacrowd" || projectTag !== `project:${projectId}`) {
+              continue;
+            }
+
             const supporter = event.tags.find((t) => t[0] === "p" && t[2] === "supporter")?.[1];
             const projectOwner = event.tags.find((t) => t[0] === "p" && t[2] === "project_owner")?.[1];
             const amountLanoshis = event.tags.find((t) => t[0] === "amount_lanoshis")?.[1];
