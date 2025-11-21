@@ -18,6 +18,7 @@ export interface ProjectData {
   currency: string;
   walletId: string;
   responsibilityStatement: string;
+  coverImage?: string;
   videoUrl?: string;
   images?: string[];
 }
@@ -60,11 +61,15 @@ export async function publishProjectToNostr(
     tags.push(["video", projectData.videoUrl, "primary"]);
   }
 
-  // Add optional images
+  // Add cover image (highest priority)
+  if (projectData.coverImage) {
+    tags.push(["img", projectData.coverImage, "cover"]);
+  }
+
+  // Add gallery images
   if (projectData.images && projectData.images.length > 0) {
-    projectData.images.forEach((imgUrl, idx) => {
-      const imgType = idx === 0 ? "cover" : "gallery";
-      tags.push(["img", imgUrl, imgType]);
+    projectData.images.forEach((imgUrl) => {
+      tags.push(["img", imgUrl, "gallery"]);
     });
   }
 
