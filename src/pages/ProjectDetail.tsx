@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Home, Heart } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
 import type { NostrProfile } from "@/types/nostrProfile";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { User as UserIcon } from "lucide-react";
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -180,11 +182,42 @@ const ProjectDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col pb-16">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
+        
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+          <TabsList className="w-full h-16 grid grid-cols-3 rounded-none bg-background">
+            <TabsTrigger 
+              value="all" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/dashboard')}
+            >
+              <Home className="h-5 w-5" />
+              <span className="text-xs">All</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="my" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/my-projects')}
+            >
+              <UserIcon className="h-5 w-5" />
+              <span className="text-xs">My</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="donations" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/dashboard')}
+            >
+              <Heart className="h-5 w-5" />
+              <span className="text-xs">Donations</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
         <Footer />
       </div>
     );
@@ -192,7 +225,7 @@ const ProjectDetail = () => {
 
   if (error || !project) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col pb-16">
         <Header />
         <main className="flex-1 container mx-auto px-4 py-8">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
@@ -205,13 +238,44 @@ const ProjectDetail = () => {
             </CardContent>
           </Card>
         </main>
+        
+        {/* Bottom Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+          <TabsList className="w-full h-16 grid grid-cols-3 rounded-none bg-background">
+            <TabsTrigger 
+              value="all" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/dashboard')}
+            >
+              <Home className="h-5 w-5" />
+              <span className="text-xs">All</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="my" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/my-projects')}
+            >
+              <UserIcon className="h-5 w-5" />
+              <span className="text-xs">My</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="donations" 
+              className="flex flex-col gap-1"
+              onClick={() => navigate('/dashboard')}
+            >
+              <Heart className="h-5 w-5" />
+              <span className="text-xs">Donations</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        
         <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-16">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
@@ -394,6 +458,37 @@ const ProjectDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
+        <TabsList className="w-full h-16 grid grid-cols-3 rounded-none bg-background">
+          <TabsTrigger 
+            value="all" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/dashboard')}
+          >
+            <Home className="h-5 w-5" />
+            <span className="text-xs">All</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="my" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/my-projects')}
+          >
+            <UserIcon className="h-5 w-5" />
+            <span className="text-xs">My</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="donations" 
+            className="flex flex-col gap-1"
+            onClick={() => navigate('/dashboard')}
+          >
+            <Heart className="h-5 w-5" />
+            <span className="text-xs">Donations</span>
+          </TabsTrigger>
+        </TabsList>
+      </div>
+
       <Footer />
     </div>
   );
