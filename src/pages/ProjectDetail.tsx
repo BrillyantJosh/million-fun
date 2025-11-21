@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { SimplePool } from "nostr-tools/pool";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -180,19 +181,20 @@ const ProjectDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col pb-16">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
         <Footer />
+        <BottomNav />
       </div>
     );
   }
 
   if (error || !project) {
     return (
-      <div className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col pb-16">
         <Header />
         <main className="flex-1 container mx-auto px-4 py-8">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
@@ -206,12 +208,13 @@ const ProjectDetail = () => {
           </Card>
         </main>
         <Footer />
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-16">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
@@ -395,6 +398,7 @@ const ProjectDetail = () => {
         </div>
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 };

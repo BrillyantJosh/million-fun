@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, ArrowLeft, Loader2 } from "lucide-react";
@@ -15,7 +16,7 @@ const MyProjects = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col pb-16">
       <Header />
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="mb-6 flex items-center justify-between">
@@ -118,6 +119,7 @@ const MyProjects = () => {
         )}
       </main>
       <Footer />
+      <BottomNav />
     </div>
   );
 };
