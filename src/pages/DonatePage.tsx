@@ -300,38 +300,66 @@ const DonatePage = () => {
       return;
     }
 
-    const session = getUserSession();
-    if (!session || !projectData) {
+    if (!projectData || !lanaAmount) {
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const cleanAmount = donationAmount.replace(/,/g, '');
+      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      if (!systemParamsStr) {
+        throw new Error("System parameters not found");
+      }
+
+      const raw = JSON.parse(systemParamsStr);
+      const systemParams: LanaSystemParameters = raw.parameters ?? raw;
       
-      // TODO: Implement actual donation logic with WIF signing
-      console.log("Donation details:", {
-        projectId,
-        fromWallet: selectedWalletId,
-        toWallet: projectData.walletId,
-        amountFiat: cleanAmount,
+      const electrumServers = systemParams.electrum.map((server: any) => ({
+        host: server.host,
+        port: server.port
+      }));
+
+      console.log("Processing donation:", {
+        recipient: projectData.walletId,
         amountLana: lanaAmount,
-        currency: projectData.currency,
-        message,
-        wifKey: '***' // Don't log actual key
+        electrumServers: electrumServers.length
       });
 
+      const { data, error } = await supabase.functions.invoke('process-lana-donation', {
+        body: {
+          recipient_address: projectData.walletId,
+          amount_lana: lanaAmount,
+          private_key: wifKey,
+          electrum_servers: electrumServers
+        }
+      });
+
+      if (error) {
+        console.error('Donation error:', error);
+        throw new Error(error.message || "Failed to process donation");
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || "Transaction failed");
+      }
+
+      console.log("Transaction successful:", data.txid);
+
       toast({
-        title: "Donation Submitted!",
-        description: `Donation of ${cleanAmount} ${projectData.currency} (${lanaAmount} LANA) initiated`,
+        title: "Donation Successful! 🎉",
+        description: `Donated ${lanaAmount.toLocaleString()} LANA to the project. Transaction ID: ${data.txid.substring(0, 16)}...`,
       });
 
       setShowWifDialog(false);
       setWifKey("");
+      
+      // TODO: Create KIND 60200 Nostr event to record donation
+      
       navigate(`/project/${projectId}`);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      console.error("Donation failed:", errorMsg);
       toast({
         title: "Donation Failed",
         description: errorMsg,
