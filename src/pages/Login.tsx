@@ -197,7 +197,7 @@ const Login = () => {
             <div className="text-center pt-4 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 Don't have a LANA wallet?{" "}
-                <a href="https://lanacoin.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                <a href="https://100Million2Everyone.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                   Get started
                 </a>
               </p>
