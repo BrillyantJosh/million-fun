@@ -43,6 +43,8 @@ const DonatePage = () => {
   const [showWifDialog, setShowWifDialog] = useState(false);
   const [wifKey, setWifKey] = useState("");
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerDivRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const session = getUserSession();
@@ -340,48 +342,101 @@ const DonatePage = () => {
     }
   };
 
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  // Cleanup scanner on unmount or dialog close
+  useEffect(() => {
+    return () => {
+      if (scannerRef.current) {
+        scannerRef.current.stop().catch(() => {});
+      }
+    };
+  }, []);
 
   const startQrScanner = async () => {
     setShowQrScanner(true);
     
-    try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      scannerRef.current = html5QrCode;
-
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 }
-        },
-        (decodedText) => {
-          setWifKey(decodedText);
-          stopQrScanner();
+    // 100ms delay to ensure DOM is ready
+    setTimeout(async () => {
+      try {
+        // 1. Enumerate cameras
+        const cameras = await Html5Qrcode.getCameras();
+        
+        if (!cameras || cameras.length === 0) {
           toast({
-            title: "QR Code Scanned",
-            description: "WIF key loaded from QR code"
+            title: "No Camera Found",
+            description: "No camera found on this device",
+            variant: "destructive"
           });
-        },
-        () => {
-          // Ignore scan failures
+          setShowQrScanner(false);
+          return;
         }
-      );
-    } catch (error) {
-      console.error("QR scanner error:", error);
-      toast({
-        title: "Scanner Error",
-        description: "Unable to start camera. Please enter WIF manually.",
-        variant: "destructive"
-      });
-      setShowQrScanner(false);
-    }
+
+        // 2. Select camera (priority: back camera)
+        let selectedCamera = cameras[0];
+        if (cameras.length > 1) {
+          const backCamera = cameras.find(camera => 
+            camera.label.toLowerCase().includes('back') || 
+            camera.label.toLowerCase().includes('rear')
+          );
+          if (backCamera) {
+            selectedCamera = backCamera;
+          }
+        }
+
+        // 3. Initialize scanner
+        const scanner = new Html5Qrcode("qr-reader-wif");
+        scannerRef.current = scanner;
+
+        // 4. Start scanner
+        await scanner.start(
+          selectedCamera.id,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+          },
+          (decodedText) => {
+            setWifKey(decodedText);
+            stopQrScanner();
+            toast({
+              title: "QR Code Scanned",
+              description: "WIF key loaded successfully"
+            });
+          },
+          () => {
+            // Ignore scan errors during operation
+          }
+        );
+      } catch (error: any) {
+        console.error("Error starting QR scanner:", error);
+        setShowQrScanner(false);
+        
+        let errorMessage = "Unknown error";
+        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+          errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
+        } else if (error.name === "NotFoundError") {
+          errorMessage = "No camera found on this device";
+        } else if (error.name === "NotReadableError") {
+          errorMessage = "Camera is already in use by another application";
+        } else {
+          errorMessage = error.message || "Unknown error occurred";
+        }
+        
+        toast({
+          title: "Scanner Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
+    }, 100);
   };
 
-  const stopQrScanner = () => {
+  const stopQrScanner = async () => {
     if (scannerRef.current) {
-      scannerRef.current.stop().catch(console.error);
-      scannerRef.current = null;
+      try {
+        await scannerRef.current.stop();
+        scannerRef.current = null;
+      } catch (error) {
+        console.error("Error stopping scanner:", error);
+      }
     }
     setShowQrScanner(false);
   };
@@ -582,32 +637,31 @@ const DonatePage = () => {
                     />
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={startQrScanner}
-                      className="flex-1"
-                    >
-                      <Camera className="mr-2 h-4 w-4" />
-                      Scan QR Code
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={startQrScanner}
+                    className="w-full"
+                  >
+                    <Camera className="mr-2 h-4 w-4" />
+                    Scan QR Code
+                  </Button>
                 </>
               ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Scanning QR Code...</Label>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={stopQrScanner}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div id="qr-reader" className="rounded-lg overflow-hidden"></div>
+                <div className="space-y-4">
+                  <div
+                    id="qr-reader-wif"
+                    ref={scannerDivRef}
+                    className="rounded-lg overflow-hidden border-2 border-primary"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={stopQrScanner}
+                    className="w-full"
+                  >
+                    Stop Scanning
+                  </Button>
                 </div>
               )}
 
