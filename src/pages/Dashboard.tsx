@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { ProjectGrid } from "@/components/ProjectGrid";
+import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Home, User, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Home, User, Heart, Plus } from "lucide-react";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col pb-16">
@@ -18,11 +21,21 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="my" className="mt-0">
             <div className="container mx-auto px-4 py-16">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-foreground mb-4">My Projects</h2>
-                <p className="text-muted-foreground">
-                  Projects you've created will appear here
-                </p>
+              <div className="text-center space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-4">My Projects</h2>
+                  <p className="text-muted-foreground">
+                    Projects you've created will appear here
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => setCreateDialogOpen(true)}
+                  size="lg"
+                  className="gap-2"
+                >
+                  <Plus className="h-5 w-5" />
+                  Create New Project
+                </Button>
               </div>
             </div>
           </TabsContent>
@@ -66,6 +79,11 @@ const Dashboard = () => {
         </Tabs>
       </main>
       <Footer />
+      
+      <CreateProjectDialog 
+        open={createDialogOpen} 
+        onOpenChange={setCreateDialogOpen}
+      />
     </div>
   );
 };

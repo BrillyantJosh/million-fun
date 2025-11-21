@@ -1,0 +1,180 @@
+import { SimplePool } from 'nostr-tools/pool';
+import { finalizeEvent, EventTemplate } from 'nostr-tools/pure';
+
+function hexToBytes(h: string): Uint8Array {
+  if (h.length % 2) throw new Error('Invalid hex string');
+  const a = new Uint8Array(h.length / 2);
+  for (let i = 0; i < a.length; i++) {
+    a[i] = parseInt(h.slice(2 * i, 2 * i + 2), 16);
+  }
+  return a;
+}
+
+export interface ProjectData {
+  title: string;
+  shortDesc: string;
+  longDesc: string;
+  fiatGoal: string;
+  currency: string;
+  walletId: string;
+  responsibilityStatement: string;
+  images?: Array<{ url: string; type: 'cover' | 'gallery' | 'other' }>;
+  videos?: Array<{ url: string; type: 'primary' | 'extra' | 'other' }>;
+  documents?: Array<{ url: string; type: 'pdf' | 'doc' | 'other' }>;
+  participants?: string[]; // Nostr hex pubkeys
+}
+
+export interface PublishResult {
+  relay: string;
+  success: boolean;
+  error?: string;
+}
+
+export async function publishProjectToNostr(
+  projectData: ProjectData,
+  privateKeyHex: string,
+  ownerNostrHex: string,
+  relays: string[]
+): Promise<{ eventId: string; results: PublishResult[] }> {
+  
+  // Generate unique project ID
+  const projectUuid = crypto.randomUUID();
+  
+  // Build tags array
+  const tags: string[][] = [
+    ["d", `project:${projectUuid}`],
+    ["service", "lanacrowd"],
+    ["title", projectData.title],
+    ["short_desc", projectData.shortDesc],
+    ["fiat_goal", projectData.fiatGoal],
+    ["currency", projectData.currency],
+    ["wallet", projectData.walletId],
+    ["responsibility_statement", projectData.responsibilityStatement],
+    ["p", ownerNostrHex, "owner"],
+    ["timestamp_created", Math.floor(Date.now() / 1000).toString()]
+  ];
+
+  // Add optional participants
+  if (projectData.participants && projectData.participants.length > 0) {
+    projectData.participants.forEach(participantHex => {
+      tags.push(["p", participantHex, "participant"]);
+    });
+  }
+
+  // Add optional images
+  if (projectData.images && projectData.images.length > 0) {
+    projectData.images.forEach(img => {
+      tags.push(["img", img.url, img.type]);
+    });
+  }
+
+  // Add optional videos
+  if (projectData.videos && projectData.videos.length > 0) {
+    projectData.videos.forEach(video => {
+      tags.push(["video", video.url, video.type]);
+    });
+  }
+
+  // Add optional documents
+  if (projectData.documents && projectData.documents.length > 0) {
+    projectData.documents.forEach(doc => {
+      tags.push(["file", doc.url, doc.type]);
+    });
+  }
+
+  // Create event template
+  const eventTemplate: EventTemplate = {
+    kind: 31234,
+    created_at: Math.floor(Date.now() / 1000),
+    tags,
+    content: projectData.longDesc
+  };
+
+  // Sign event
+  const privateKeyBytes = hexToBytes(privateKeyHex);
+  const signedEvent = finalizeEvent(eventTemplate, privateKeyBytes);
+
+  console.log('✍️ Project event signed:', {
+    id: signedEvent.id,
+    kind: signedEvent.kind,
+    pubkey: signedEvent.pubkey,
+    projectId: projectUuid
+  });
+
+  // Publish to relays
+  const pool = new SimplePool();
+  const results: PublishResult[] = [];
+
+  try {
+    const publishPromises = relays.map(async (relay: string) => {
+      console.log(`🔄 Publishing project to ${relay}...`);
+
+      return new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          results.push({
+            relay,
+            success: false,
+            error: 'Connection timeout (10s)'
+          });
+          console.error(`❌ ${relay}: Timeout`);
+          resolve();
+        }, 10000);
+
+        try {
+          const pubs = pool.publish([relay], signedEvent);
+
+          Promise.race([
+            Promise.all(pubs),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('Publish timeout')), 8000)
+            )
+          ]).then(() => {
+            clearTimeout(timeout);
+            results.push({ relay, success: true });
+            console.log(`✅ ${relay}: Project published successfully`);
+            resolve();
+          }).catch((error) => {
+            clearTimeout(timeout);
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            results.push({ relay, success: false, error: errorMsg });
+            console.error(`❌ ${relay}: ${errorMsg}`);
+            resolve();
+          });
+        } catch (error) {
+          clearTimeout(timeout);
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          results.push({ relay, success: false, error: errorMsg });
+          console.error(`❌ ${relay}: ${errorMsg}`);
+          resolve();
+        }
+      });
+    });
+
+    // Wait for all relays to complete or timeout
+    await Promise.all(publishPromises);
+
+    // Summary
+    const successCount = results.filter(r => r.success).length;
+    const failedCount = results.filter(r => !r.success).length;
+
+    console.log('📊 Project publishing summary:', {
+      eventId: signedEvent.id,
+      projectId: projectUuid,
+      total: results.length,
+      successful: successCount,
+      failed: failedCount,
+      details: results
+    });
+
+    // Success if at least 1 relay accepted
+    if (successCount === 0) {
+      throw new Error('Failed to publish project to any relay');
+    }
+
+    return { eventId: signedEvent.id, results };
+
+  } finally {
+    // CRITICAL: Always close pool
+    pool.close(relays);
+  }
+}
