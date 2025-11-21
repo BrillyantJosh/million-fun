@@ -1,17 +1,36 @@
-import { ProjectCard } from "./ProjectCard";
-import { mockProjects } from "@/data/mockProjects";
-import { useToast } from "@/hooks/use-toast";
+import { PublicProjectCard } from "./PublicProjectCard";
+import { useAllProjects } from "@/hooks/useAllProjects";
+import { Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 
 export const ProjectGrid = () => {
-  const { toast } = useToast();
+  const { projects, loading, error } = useAllProjects();
 
-  const handleDonate = (projectId: string) => {
-    const project = mockProjects.find(p => p.id === projectId);
-    toast({
-      title: "Donation with LANA",
-      description: `Selected project: ${project?.title}. Donation functionality will be added in the next version.`,
-    });
-  };
+  if (loading) {
+    return (
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-destructive">{error}</p>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-background">
@@ -24,15 +43,25 @@ export const ProjectGrid = () => {
             Discover projects that need your support. Every LANA donation counts!
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
-          {mockProjects.map((project) => (
-            <ProjectCard 
-              key={project.id} 
-              project={project} 
-              onDonate={handleDonate}
-            />
-          ))}
-        </div>
+        
+        {projects.length === 0 ? (
+          <Card>
+            <CardContent className="py-16 text-center">
+              <p className="text-muted-foreground text-lg">
+                No projects available yet. Be the first to create one!
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">
+            {projects.map((project) => (
+              <PublicProjectCard 
+                key={project.id} 
+                project={project}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
