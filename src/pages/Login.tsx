@@ -165,9 +165,6 @@ const Login = () => {
                 disabled={isScanning}
                 className="font-mono"
               />
-              <p className="text-xs text-muted-foreground">
-                Your private key starts with 5, K, or L (51-52 characters)
-              </p>
             </div>
 
             {!isScanning ? (
