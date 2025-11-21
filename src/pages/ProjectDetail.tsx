@@ -7,16 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
+import type { NostrProfile } from "@/types/nostrProfile";
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<NostrProject | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<NostrProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [responsibilityStatement, setResponsibilityStatement] = useState<string>("");
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -122,7 +126,44 @@ const ProjectDetail = () => {
             createdAt: event.created_at
           };
 
+          const respStatement = getTag("responsibility_statement") || "";
+          setResponsibilityStatement(respStatement);
           setProject(parsedProject);
+
+          // Fetch owner profile (KIND 0)
+          if (parsedProject.owner) {
+            try {
+              const profilePromises = relays.map(async (relay) => {
+                return new Promise<any[]>((resolve) => {
+                  const timeout = setTimeout(() => resolve([]), 3000);
+                  
+                  pool.querySync([relay], {
+                    kinds: [0],
+                    authors: [parsedProject.owner],
+                    limit: 1
+                  }).then((events) => {
+                    clearTimeout(timeout);
+                    resolve(events);
+                  }).catch(() => {
+                    clearTimeout(timeout);
+                    resolve([]);
+                  });
+                });
+              });
+
+              const profileResults = await Promise.all(profilePromises);
+              const profileEvents = profileResults.flat();
+              
+              if (profileEvents.length > 0) {
+                const latestProfile = profileEvents.sort((a, b) => b.created_at - a.created_at)[0];
+                const profileData = JSON.parse(latestProfile.content);
+                setOwnerProfile(profileData);
+              }
+            } catch (err) {
+              console.error('Failed to fetch owner profile:', err);
+            }
+          }
+
           setLoading(false);
         } finally {
           pool.close(relays);
@@ -203,6 +244,51 @@ const ProjectDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Project Initiator */}
+            {ownerProfile && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" />
+                    Project Initiator
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-start gap-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarImage src={ownerProfile.picture} alt={ownerProfile.name} />
+                      <AvatarFallback>{ownerProfile.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{ownerProfile.display_name || ownerProfile.name}</h3>
+                      {ownerProfile.about && (
+                        <p className="text-sm text-muted-foreground mt-1">{ownerProfile.about}</p>
+                      )}
+                      <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                        {ownerProfile.location && <span>📍 {ownerProfile.location}</span>}
+                        {ownerProfile.country && <span>🌍 {ownerProfile.country}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Responsibility Statement */}
+            {responsibilityStatement && (
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <Shield className="h-5 w-5" />
+                    Statement of Responsibility
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm italic text-foreground">"{responsibilityStatement}"</p>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Project Description</CardTitle>
