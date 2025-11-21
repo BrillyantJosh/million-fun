@@ -8,8 +8,8 @@ export const ProjectGrid = () => {
   const handleDonate = (projectId: string) => {
     const project = mockProjects.find(p => p.id === projectId);
     toast({
-      title: "Donacija s LANA",
-      description: `Izbran projekt: ${project?.title}. Funkcionalnost donacij bo dodana v naslednji verziji.`,
+      title: "Donation with LANA",
+      description: `Selected project: ${project?.title}. Donation functionality will be added in the next version.`,
     });
   };
 
@@ -18,10 +18,10 @@ export const ProjectGrid = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-foreground mb-4">
-            Aktivni Projekti
+            Active Projects
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Odkrijte projekte, ki potrebujejo vašo podporo. Vsaka donacija v LANA šteje!
+            Discover projects that need your support. Every LANA donation counts!
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 gap-8">

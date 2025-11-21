@@ -38,10 +38,10 @@ export const NostrDataDialog = () => {
         </DialogTrigger>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-background">
           <DialogHeader>
-            <DialogTitle>Nostr KIND 38888 Podatki</DialogTitle>
+            <DialogTitle>Nostr KIND 38888 Data</DialogTitle>
           </DialogHeader>
           <div className="p-4 text-center text-muted-foreground">
-            Ni shranjenih podatkov v Session Storage
+            No data saved in Session Storage
           </div>
         </DialogContent>
       </Dialog>
@@ -63,23 +63,23 @@ export const NostrDataDialog = () => {
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-background">
         <DialogHeader>
-          <DialogTitle>Nostr KIND 38888 - Shranjeni Podatki</DialogTitle>
+          <DialogTitle>Nostr KIND 38888 - Saved Data</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
           {/* Connection Status */}
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Povezava z Nostr mrežo</h3>
+              <h3 className="text-lg font-semibold text-foreground">Nostr Network Connection</h3>
               <Badge className="bg-primary text-primary-foreground">
-                {connectedCount}/{totalRelays} povezano
+                {connectedCount}/{totalRelays} connected
               </Badge>
             </div>
           </div>
 
           {/* Relays */}
           <div>
-            <h4 className="font-semibold mb-3 text-foreground">Relay-i:</h4>
+            <h4 className="font-semibold mb-3 text-foreground">Relays:</h4>
             <div className="space-y-2">
               {relayStatuses.map((relay) => (
                 <div key={relay.url} className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
@@ -97,7 +97,7 @@ export const NostrDataDialog = () => {
 
           {/* Exchange Rates */}
           <div>
-            <h4 className="font-semibold mb-3 text-foreground">Menjalni tečaji:</h4>
+            <h4 className="font-semibold mb-3 text-foreground">Exchange Rates:</h4>
             <div className="bg-secondary/30 p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">EUR:</span>
@@ -116,20 +116,20 @@ export const NostrDataDialog = () => {
 
           {/* System Info */}
           <div>
-            <h4 className="font-semibold mb-3 text-foreground">Sistemske informacije:</h4>
+            <h4 className="font-semibold mb-3 text-foreground">System Information:</h4>
             <div className="bg-secondary/30 p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Split:</span>
                 <span className="font-medium text-foreground">{parameters.split}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Verzija:</span>
+                <span className="text-muted-foreground">Version:</span>
                 <span className="font-medium text-foreground">{parameters.version}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Veljavno od:</span>
+                <span className="text-muted-foreground">Valid from:</span>
                 <span className="font-medium text-foreground">
-                  {new Date(parseInt(parameters.valid_from) * 1000).toLocaleDateString('sl-SI')}
+                  {new Date(parseInt(parameters.valid_from) * 1000).toLocaleDateString('en-US')}
                 </span>
               </div>
             </div>
@@ -138,7 +138,7 @@ export const NostrDataDialog = () => {
           {/* Electrum Servers */}
           {parameters.electrum && parameters.electrum.length > 0 && (
             <div>
-              <h4 className="font-semibold mb-3 text-foreground">Electrum strežniki:</h4>
+              <h4 className="font-semibold mb-3 text-foreground">Electrum Servers:</h4>
               <div className="space-y-2">
                 {parameters.electrum.map((server, idx) => (
                   <div key={idx} className="bg-secondary/50 p-3 rounded-lg">
@@ -165,7 +165,7 @@ export const NostrDataDialog = () => {
                       ))}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground italic">Ni definiranih podpisnikov</span>
+                    <span className="text-sm text-muted-foreground italic">No signers defined</span>
                   )}
                 </div>
               ))}
@@ -175,7 +175,7 @@ export const NostrDataDialog = () => {
           {/* Session Storage Info */}
           <div className="pt-4 border-t border-border">
             <p className="text-sm text-muted-foreground">
-              Podatki so shranjeni v Session Storage in se osvežijo ob vsakem nalaganju strani.
+              Data is stored in Session Storage and refreshed on every page load.
             </p>
           </div>
         </div>
