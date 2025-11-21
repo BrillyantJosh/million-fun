@@ -2,6 +2,7 @@ import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { ProjectGrid } from "@/components/ProjectGrid";
 import { Footer } from "@/components/Footer";
+import { NostrNetworkStatus } from "@/components/NostrNetworkStatus";
 
 const Index = () => {
   return (
@@ -9,6 +10,7 @@ const Index = () => {
       <Header />
       <main className="flex-1">
         <Hero />
+        <NostrNetworkStatus />
         <ProjectGrid />
       </main>
       <Footer />
