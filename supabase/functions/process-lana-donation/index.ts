@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ripemd160 } from "https://esm.sh/hash.js@1.1.7";
+import { SimplePool } from 'https://esm.sh/nostr-tools@2.17.4/pool';
+import { finalizeEvent } from 'https://esm.sh/nostr-tools@2.17.4/pure';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -542,24 +544,39 @@ serve(async (req) => {
   }
   
   try {
-    console.log('Processing LANA donation...');
-    const { recipient_address, amount_lana, private_key, electrum_servers } = await req.json();
+    console.log('🚀 Starting LANA donation transaction...');
+    const { 
+      recipient_address,
+      amount_lana,
+      private_key,
+      electrum_servers,
+      project_id,
+      project_owner_hex,
+      supporter_private_key_hex,
+      amount_fiat,
+      currency,
+      message,
+      relays
+    } = await req.json();
+    
+    console.log('📋 Transaction parameters:', {
+      recipient: recipient_address,
+      amount: amount_lana,
+      hasPrivateKey: !!private_key,
+      hasRelays: !!relays
+    });
     
     if (!recipient_address || !amount_lana || !private_key) {
       throw new Error('Missing required parameters');
     }
     
-    // Convert LANA to satoshis
-    const amountSatoshis = Math.round(amount_lana * 100000000);
-    console.log(`Sending ${amount_lana} LANA (${amountSatoshis} satoshis) to ${recipient_address}`);
-    
-    // Derive sender address from private key
+    // Validate private key matches sender address
     const privateKeyBytes = base58CheckDecode(private_key);
     const privateKeyHex = uint8ArrayToHex(privateKeyBytes.slice(1));
     const generatedPubKey = privateKeyToPublicKey(privateKeyHex);
     const senderAddress = await publicKeyToAddress(generatedPubKey);
     
-    console.log(`Sender address: ${senderAddress}`);
+    console.log('✅ Sender address:', senderAddress);
     
     const servers = electrum_servers && electrum_servers.length > 0
       ? electrum_servers
@@ -568,81 +585,202 @@ serve(async (req) => {
           { host: "electrum2.lanacoin.com", port: 5097 }
         ];
     
+    console.log(`⚙️ Using Electrum servers:`, servers);
+    
     const utxos = await electrumCall('blockchain.address.listunspent', [senderAddress], servers);
     if (!utxos || utxos.length === 0) throw new Error('No UTXOs available');
-    console.log(`Found ${utxos.length} UTXOs`);
+    console.log(`📦 Found ${utxos.length} UTXOs`);
+    
+    const totalAmountSatoshis = Math.round(amount_lana * 100000000);
+    console.log(`💰 Total to send: ${totalAmountSatoshis} satoshis (${amount_lana} LANA)`);
     
     const totalAvailable = utxos.reduce((sum: number, utxo: any) => sum + utxo.value, 0);
-    console.log(`Total available: ${totalAvailable} satoshis`);
+    console.log(`💰 Total available: ${totalAvailable} satoshis (${(totalAvailable / 100000000).toFixed(8)} LANA)`);
     
-    // Initial selection
-    let initialSelection = UTXOSelector.selectUTXOs(utxos, amountSatoshis);
+    let initialSelection = UTXOSelector.selectUTXOs(utxos, totalAmountSatoshis);
     let selectedUTXOs = initialSelection.selected;
     let totalSelected = initialSelection.totalValue;
     
-    // Calculate fee
-    const actualOutputCount = 2; // recipient + change
-    let baseFee = (selectedUTXOs.length * 180 + actualOutputCount * 34 + 10) * 100;
+    console.log(`📊 Initial selection: ${selectedUTXOs.length} UTXOs with ${totalSelected} satoshis`);
+    
+    let baseFee = (selectedUTXOs.length * 180 + 2 * 34 + 10) * 100;
     let fee = Math.floor(baseFee * 1.5);
     
-    console.log(`Calculated fee: ${fee} satoshis`);
+    console.log(`💸 Calculated fee: ${fee} satoshis`);
     
-    // Reselect if needed
     let iterations = 0;
-    while (totalSelected < amountSatoshis + fee && selectedUTXOs.length < utxos.length && iterations < 10) {
+    const maxIterations = 10;
+    
+    while (totalSelected < totalAmountSatoshis + fee && selectedUTXOs.length < utxos.length && iterations < maxIterations) {
       iterations++;
-      const needed = amountSatoshis + fee;
-      console.log(`Iteration ${iterations}: Need ${needed}, have ${totalSelected}`);
+      const needed = totalAmountSatoshis + fee;
+      console.log(`🔄 Iteration ${iterations}: Need ${needed} satoshis, reselecting...`);
       
       const reSelection = UTXOSelector.selectUTXOs(utxos, needed);
       selectedUTXOs = reSelection.selected;
       totalSelected = reSelection.totalValue;
       
-      baseFee = (selectedUTXOs.length * 180 + actualOutputCount * 34 + 10) * 100;
+      baseFee = (selectedUTXOs.length * 180 + 2 * 34 + 10) * 100;
       fee = Math.floor(baseFee * 1.5);
+      
+      console.log(`   → Selected ${selectedUTXOs.length} UTXOs, new fee: ${fee} satoshis`);
     }
     
-    if (totalSelected < amountSatoshis + fee) {
-      throw new Error(`Insufficient funds: need ${amountSatoshis + fee}, have ${totalSelected}`);
+    if (totalSelected < totalAmountSatoshis + fee) {
+      throw new Error(`Insufficient funds: need ${totalAmountSatoshis + fee} satoshis, have ${totalSelected} satoshis`);
     }
     
-    console.log(`Final: ${selectedUTXOs.length} UTXOs, total: ${totalSelected}, fee: ${fee}`);
+    console.log(`✅ Final selection: ${selectedUTXOs.length} UTXOs with ${totalSelected} satoshis`);
     
     const signedTx = await buildSignedTx(
       selectedUTXOs,
       private_key,
-      { address: recipient_address, amount: amountSatoshis },
+      { address: recipient_address, amount: totalAmountSatoshis },
       fee,
       senderAddress,
       servers
     );
     
-    console.log('Broadcasting transaction...');
+    console.log('✍️ Transaction signed successfully');
+    
+    console.log('🚀 Broadcasting transaction...');
     const broadcastResult = await electrumCall('blockchain.transaction.broadcast', [signedTx], servers, 45000);
     
-    if (!broadcastResult) throw new Error('Broadcast failed');
+    if (!broadcastResult) throw new Error('Transaction broadcast failed');
     
-    const txid = String(broadcastResult).trim();
-    if (!/^[a-fA-F0-9]{64}$/.test(txid)) {
-      throw new Error(`Invalid txid: ${txid}`);
+    let resultStr = typeof broadcastResult === 'string' ? broadcastResult : String(broadcastResult);
+    
+    if (
+      resultStr.includes('TX rejected') ||
+      resultStr.includes('code') ||
+      resultStr.includes('-22') ||
+      resultStr.includes('error') ||
+      resultStr.includes('Error') ||
+      resultStr.includes('failed') ||
+      resultStr.includes('Failed')
+    ) {
+      throw new Error(`Transaction broadcast failed: ${resultStr}`);
     }
     
-    console.log('Transaction successful:', txid);
+    const txid = resultStr.trim();
+    if (!/^[a-fA-F0-9]{64}$/.test(txid)) {
+      throw new Error(`Invalid transaction ID format: ${txid}`);
+    }
+    
+    console.log('✅ Transaction broadcast successful:', txid);
+    
+    // Now create and publish KIND 60200 Nostr event
+    const nostrResults: Array<{ relay: string; success: boolean; error?: string }> = [];
+    let nostrEventId: string | null = null;
+    
+    if (relays && relays.length > 0 && project_id && supporter_private_key_hex) {
+      console.log('📡 Publishing KIND 60200 support event to Nostr relays...');
+      
+      try {
+        // Get supporter pubkey from private key
+        const supporterPrivKeyBytes = hexToUint8Array(supporter_private_key_hex);
+        
+        // Build KIND 60200 event
+        const eventTemplate = {
+          kind: 60200,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["service", "lanacrowd"],
+            ["project", `project:${project_id}`],
+            ["p", finalizeEvent({ kind: 0, created_at: 0, tags: [], content: "" }, supporterPrivKeyBytes).pubkey, "supporter"],
+            ["p", project_owner_hex, "project_owner"],
+            ["amount_lanoshis", totalAmountSatoshis.toString()],
+            ["amount_fiat", amount_fiat || "0.00"],
+            ["currency", currency || "EUR"],
+            ["from_wallet", senderAddress],
+            ["to_wallet", recipient_address],
+            ["tx", txid],
+            ["timestamp_paid", Math.floor(Date.now() / 1000).toString()]
+          ],
+          content: message || ""
+        };
+        
+        const signedEvent = finalizeEvent(eventTemplate, supporterPrivKeyBytes);
+        nostrEventId = signedEvent.id;
+        
+        console.log('✍️ Support event signed:', nostrEventId);
+        
+        // Publish to relays
+        const pool = new SimplePool();
+        
+        try {
+          const publishPromises = relays.map(async (relay: string) => {
+            console.log(`🔄 Publishing support to ${relay}...`);
+            
+            return new Promise<void>((resolve) => {
+              const timeout = setTimeout(() => {
+                nostrResults.push({
+                  relay,
+                  success: false,
+                  error: 'Connection timeout (10s)'
+                });
+                console.error(`❌ ${relay}: Timeout`);
+                resolve();
+              }, 10000);
+              
+              try {
+                const pubs = pool.publish([relay], signedEvent);
+                
+                Promise.race([
+                  Promise.all(pubs),
+                  new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Publish timeout')), 8000)
+                  )
+                ]).then(() => {
+                  clearTimeout(timeout);
+                  nostrResults.push({ relay, success: true });
+                  console.log(`✅ ${relay}: Support published`);
+                  resolve();
+                }).catch((error) => {
+                  clearTimeout(timeout);
+                  const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                  nostrResults.push({ relay, success: false, error: errorMsg });
+                  console.error(`❌ ${relay}: ${errorMsg}`);
+                  resolve();
+                });
+              } catch (error) {
+                clearTimeout(timeout);
+                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                nostrResults.push({ relay, success: false, error: errorMsg });
+                console.error(`❌ ${relay}: ${errorMsg}`);
+                resolve();
+              }
+            });
+          });
+          
+          await Promise.all(publishPromises);
+          
+          const successCount = nostrResults.filter(r => r.success).length;
+          console.log(`📊 Nostr publishing summary: ${successCount}/${nostrResults.length} relays successful`);
+        } finally {
+          pool.close(relays);
+        }
+      } catch (nostrError) {
+        console.error('❌ Nostr event creation error:', nostrError);
+      }
+    }
     
     return new Response(
       JSON.stringify({ 
         success: true, 
-        txid,
-        amount_satoshis: amountSatoshis,
+        txid, 
+        total_amount: totalAmountSatoshis, 
         fee,
-        change: totalSelected - amountSatoshis - fee
+        nostr_event_id: nostrEventId,
+        nostr_results: nostrResults,
+        electrum_success: true
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   } catch (error) {
-    console.error('Transaction error:', error);
+    console.error('❌ Transaction error:', error);
     return new Response(
       JSON.stringify({
         success: false,
