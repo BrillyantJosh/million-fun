@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import type { LanaSystemParameters } from "@/types/nostr";
 import { SimplePool, type Filter } from "nostr-tools";
+import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const DonatePage = () => {
   const navigate = useNavigate();
@@ -32,6 +34,10 @@ const DonatePage = () => {
   const [donationAmount, setDonationAmount] = useState("");
   const [selectedWalletId, setSelectedWalletId] = useState("");
   const [message, setMessage] = useState("");
+  const [lanaAmount, setLanaAmount] = useState<number | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [checkingBalance, setCheckingBalance] = useState(false);
+  const [fxRate, setFxRate] = useState<number | null>(null);
 
   useEffect(() => {
     const session = getUserSession();
@@ -109,6 +115,89 @@ const DonatePage = () => {
 
     fetchProjectData();
   }, [projectId, navigate]);
+
+  // Load FX rate from session
+  useEffect(() => {
+    const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+    if (systemParamsStr && projectData) {
+      try {
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const rate = systemParams.fx?.[projectData.currency];
+        if (rate) {
+          setFxRate(rate);
+          console.log(`FX Rate for ${projectData.currency}: ${rate}`);
+        }
+      } catch (error) {
+        console.error("Failed to load FX rate:", error);
+      }
+    }
+  }, [projectData]);
+
+  // Convert FIAT to LANA and check balance
+  useEffect(() => {
+    const checkWalletBalance = async () => {
+      if (!donationAmount || !selectedWalletId || !fxRate) {
+        setLanaAmount(null);
+        setWalletBalance(null);
+        return;
+      }
+
+      const cleanAmount = donationAmount.replace(/,/g, '');
+      const fiatAmount = parseFloat(cleanAmount);
+      
+      if (isNaN(fiatAmount) || fiatAmount <= 0) {
+        setLanaAmount(null);
+        setWalletBalance(null);
+        return;
+      }
+
+      // Convert FIAT to LANA
+      const lana = fiatAmount * fxRate;
+      setLanaAmount(Math.round(lana * 100) / 100);
+
+      // Check wallet balance
+      setCheckingBalance(true);
+      try {
+        const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+        if (!systemParamsStr) return;
+
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        
+        const electrumServers = (systemParams.electrum || []).map((server: any) => ({
+          host: server.host,
+          port: server.port.toString()
+        }));
+
+        const { data, error } = await supabase.functions.invoke('check-wallet-balance', {
+          body: {
+            wallet_addresses: [selectedWalletId],
+            electrum_servers: electrumServers
+          }
+        });
+
+        if (error) {
+          console.error('Error checking balance:', error);
+          setWalletBalance(null);
+          return;
+        }
+
+        if (data?.wallets?.[0]) {
+          setWalletBalance(data.wallets[0].balance);
+          console.log(`Wallet ${selectedWalletId} balance: ${data.wallets[0].balance} LANA`);
+        }
+      } catch (error) {
+        console.error('Failed to check balance:', error);
+        setWalletBalance(null);
+      } finally {
+        setCheckingBalance(false);
+      }
+    };
+
+    const timeoutId = setTimeout(checkWalletBalance, 500);
+    return () => clearTimeout(timeoutId);
+  }, [donationAmount, selectedWalletId, fxRate]);
 
   const formatNumberWithThousands = (value: string): string => {
     const cleanValue = value.replace(/[^\d.]/g, '');
@@ -270,7 +359,39 @@ const DonatePage = () => {
                   placeholder="100.00"
                   required
                 />
+                {lanaAmount !== null && (
+                  <p className="text-sm text-muted-foreground">
+                    ≈ {lanaAmount.toLocaleString()} LANA
+                  </p>
+                )}
               </div>
+
+              {walletBalance !== null && lanaAmount !== null && (
+                <Alert variant={walletBalance >= lanaAmount ? "default" : "destructive"}>
+                  <div className="flex items-center gap-2">
+                    {walletBalance >= lanaAmount ? (
+                      <CheckCircle2 className="h-4 w-4" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4" />
+                    )}
+                    <AlertDescription>
+                      Wallet balance: {walletBalance.toLocaleString()} LANA
+                      {walletBalance < lanaAmount && (
+                        <span className="block mt-1">
+                          Insufficient funds. You need {(lanaAmount - walletBalance).toLocaleString()} more LANA.
+                        </span>
+                      )}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
+              {checkingBalance && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Checking wallet balance...
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="message">Message (Optional)</Label>
@@ -294,7 +415,12 @@ const DonatePage = () => {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isSubmitting || walletsLoading}
+                  disabled={
+                    isSubmitting || 
+                    walletsLoading || 
+                    checkingBalance || 
+                    (walletBalance !== null && lanaAmount !== null && walletBalance < lanaAmount)
+                  }
                   className="flex-1"
                 >
                   {isSubmitting ? (
