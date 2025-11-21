@@ -9,6 +9,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { convertWifToIds } from "@/lib/lanaWallet";
 import { saveUserSession } from "@/lib/auth";
+import { fetchNostrProfile } from "@/lib/nostrProfile";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -113,16 +114,28 @@ const Login = () => {
     }
 
     try {
-      // Convert WIF to wallet and Nostr identifiers (validates checksum and prefix)
+      // Step 1: Convert WIF to wallet and Nostr identifiers
+      toast.loading("Validating private key...");
       const result = await convertWifToIds(wif);
       
-      // Save session
+      // Step 2: Fetch Nostr profile from relays
+      toast.loading("Fetching your profile from Nostr network...");
+      const profileData = await fetchNostrProfile(result.nostrHexId);
+      
+      if (!profileData) {
+        toast.error("No profile found for this account. Please create a profile first.");
+        return;
+      }
+
+      // Step 3: Save session with profile data
       saveUserSession({
         privateKey: wif,
-        ...result
+        ...result,
+        profile: profileData.profile,
+        profileTags: profileData.tags
       });
       
-      toast.success("Successfully signed in with LANA!");
+      toast.success(`Welcome back, ${profileData.profile.display_name}!`);
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
