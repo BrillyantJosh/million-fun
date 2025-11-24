@@ -8,6 +8,7 @@ export interface ReceivedDonation {
   projectId: string;
   projectTitle: string;
   supporter: string;
+  supporterName: string;
   amountLanoshis: string;
   amountFiat: string;
   currency: string;
@@ -66,6 +67,7 @@ export const useReceivedDonations = () => {
         pool.close(relays);
 
         const receivedDonations: ReceivedDonation[] = [];
+        const supporterIds = new Set<string>();
 
         for (const event of events) {
           try {
@@ -91,11 +93,14 @@ export const useReceivedDonations = () => {
               continue;
             }
 
+            supporterIds.add(supporter);
+
             receivedDonations.push({
               id: event.id,
               projectId: projectTag.replace("project:", ""),
               projectTitle: "", // Will be filled when we have project data
               supporter: supporter || "",
+              supporterName: "", // Will be filled from profile
               amountLanoshis: amountLanoshis || "0",
               amountFiat: amountFiat || "0",
               currency: currencyTag || "EUR",
@@ -108,6 +113,39 @@ export const useReceivedDonations = () => {
           } catch (err) {
             console.error("Error parsing donation event:", err);
           }
+        }
+
+        // Fetch supporter profiles (KIND 0)
+        if (supporterIds.size > 0) {
+          const pool2 = new SimplePool();
+          const profileFilter: Filter = {
+            kinds: [0],
+            authors: Array.from(supporterIds),
+          };
+
+          const profileEvents = await pool2.querySync(relays, profileFilter);
+          pool2.close(relays);
+
+          const supporterProfiles = new Map<string, string>();
+          for (const profileEvent of profileEvents) {
+            try {
+              const profile = JSON.parse(profileEvent.content);
+              const name = profile.display_name || profile.name || "";
+              if (name) {
+                supporterProfiles.set(profileEvent.pubkey, name);
+              }
+            } catch (err) {
+              console.error("Error parsing supporter profile:", err);
+            }
+          }
+
+          // Update supporter names
+          receivedDonations.forEach(donation => {
+            const name = supporterProfiles.get(donation.supporter);
+            if (name) {
+              donation.supporterName = name;
+            }
+          });
         }
 
         // Sort by timestamp (newest first)

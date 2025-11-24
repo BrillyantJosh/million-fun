@@ -125,7 +125,7 @@ const MyDonations = () => {
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
-                          From: {donation.supporter.slice(0, 16)}...
+                          From: {donation.supporterName || `${donation.supporter.slice(0, 16)}...`}
                         </p>
                         {donation.message && (
                           <p className="text-sm text-foreground italic">
@@ -138,7 +138,7 @@ const MyDonations = () => {
                           </p>
                           {donation.tx && (
                             <a
-                              href={`https://explorer.lanacoin.com/tx/${donation.tx}`}
+                              href={`https://chainz.cryptoid.info/lana/tx.dws?${donation.tx}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-primary hover:underline flex items-center gap-1"
@@ -153,7 +153,7 @@ const MyDonations = () => {
                           {parseFloat(donation.amountFiat).toFixed(2)} {donation.currency}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {parseInt(donation.amountLanoshis).toLocaleString()} lanoshis
+                          {(parseInt(donation.amountLanoshis) / 100000000).toFixed(2)} LANA
                         </p>
                       </div>
                     </div>
