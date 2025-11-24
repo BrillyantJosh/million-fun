@@ -69,8 +69,19 @@ export const ParticipantSelector = ({
       const events = await pool.querySync(relays, filter);
       console.log(`📥 Received ${events.length} KIND 0 events`);
 
-      const results: Participant[] = [];
+      // Deduplicate events - keep only the latest event for each pubkey
+      const eventMap = new Map<string, typeof events[0]>();
       for (const event of events) {
+        const existing = eventMap.get(event.pubkey);
+        if (!existing || event.created_at > existing.created_at) {
+          eventMap.set(event.pubkey, event);
+        }
+      }
+      const deduplicatedEvents = Array.from(eventMap.values());
+      console.log(`🔄 Deduplicated to ${deduplicatedEvents.length} unique profiles`);
+
+      const results: Participant[] = [];
+      for (const event of deduplicatedEvents) {
         try {
           const profile = JSON.parse(event.content) as NostrProfile;
           
@@ -79,17 +90,20 @@ export const ParticipantSelector = ({
           const nameMatch = profile.name?.toLowerCase().includes(searchLower);
           const displayNameMatch = profile.display_name?.toLowerCase().includes(searchLower);
           
+          console.log(`🔍 Checking: "${profile.name}" / "${profile.display_name}" (${event.pubkey.slice(0, 8)}...)`);
+          
           if (nameMatch || displayNameMatch) {
             // Don't include owner or already added participants
-            if (
-              event.pubkey !== ownerPubkey &&
-              !participants.some((p) => p.pubkey === event.pubkey)
-            ) {
+            if (event.pubkey === ownerPubkey) {
+              console.log(`⏭️  Skipped: Owner profile`);
+            } else if (participants.some((p) => p.pubkey === event.pubkey)) {
+              console.log(`⏭️  Skipped: Already added`);
+            } else {
               results.push({
                 pubkey: event.pubkey,
                 profile,
               });
-              console.log(`✅ Match found: ${profile.display_name || profile.name} (${event.pubkey.slice(0, 8)}...)`);
+              console.log(`✅ Match found: ${profile.display_name || profile.name}`);
             }
           }
         } catch (error) {
