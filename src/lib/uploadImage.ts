@@ -46,8 +46,9 @@ export async function uploadProjectImage(
     const filePath = `${session.nostrHexId}/${fileName}`;
 
     console.log(`⬆️ Uploading to: ${filePath}`);
+    console.log(`📦 Bucket: project-images`);
 
-    // Upload to Supabase Storage
+    // Upload to Supabase Storage (public bucket, no auth required)
     const { data, error } = await supabase.storage
       .from('project-images')
       .upload(filePath, blob, {
@@ -60,6 +61,8 @@ export async function uploadProjectImage(
       console.error('Upload error:', error);
       throw new Error(`Upload failed: ${error.message}`);
     }
+
+    console.log(`✅ Upload successful, path: ${data.path}`);
 
     // Get public URL
     const { data: urlData } = supabase.storage
