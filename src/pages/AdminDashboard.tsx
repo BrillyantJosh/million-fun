@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProjectGrid } from "@/components/ProjectGrid";
+import { AdminProjectsGrid } from "@/components/AdminProjectsGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -124,7 +124,7 @@ const AdminDashboard = () => {
           <TabsContent value="projects">
             <Card>
               <CardContent className="pt-6">
-                <ProjectGrid />
+                <AdminProjectsGrid />
               </CardContent>
             </Card>
           </TabsContent>
