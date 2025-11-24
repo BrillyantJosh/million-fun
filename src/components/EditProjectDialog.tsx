@@ -77,25 +77,69 @@ export const EditProjectDialog = ({
       coverImage: project.coverImage || ""
     });
     
-    // Load participants - for now use placeholder profiles
-    if (project.participants && project.participants.length > 0) {
-      setParticipants(project.participants.map(pubkey => ({
-        pubkey,
-        profile: { 
-          name: pubkey.slice(0, 8),
-          display_name: pubkey.slice(0, 8),
-          about: '',
-          location: '',
-          country: '',
-          currency: 'EUR',
-          lanoshi2lash: '',
-          whoAreYou: '',
-          orgasmic_profile: ''
-        } as NostrProfile
-      })));
-    } else {
-      setParticipants([]);
-    }
+    // Load participant profiles from Nostr
+    const fetchParticipantProfiles = async () => {
+      if (!project.participants || project.participants.length === 0) {
+        setParticipants([]);
+        return;
+      }
+
+      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      if (!systemParamsStr) {
+        console.warn('No system parameters found');
+        setParticipants([]);
+        return;
+      }
+
+      try {
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const relays = systemParams.relays;
+
+        if (!relays || relays.length === 0) {
+          console.warn('No relays configured');
+          setParticipants([]);
+          return;
+        }
+
+        const { SimplePool } = await import('nostr-tools/pool');
+        const pool = new SimplePool();
+
+        // Fetch profiles for all participants
+        const profileEvents = await pool.querySync(relays, {
+          kinds: [0],
+          authors: project.participants
+        });
+
+        pool.close(relays);
+
+        // Map pubkeys to profiles
+        const profileMap = new Map<string, NostrProfile>();
+        for (const event of profileEvents) {
+          try {
+            const profile: NostrProfile = JSON.parse(event.content);
+            profileMap.set(event.pubkey, profile);
+          } catch (err) {
+            console.error('Error parsing profile:', err);
+          }
+        }
+
+        // Create participants array with profiles
+        const participantsWithProfiles = project.participants
+          .map(pubkey => {
+            const profile = profileMap.get(pubkey);
+            return profile ? { pubkey, profile } : null;
+          })
+          .filter(Boolean) as Array<{ pubkey: string; profile: NostrProfile }>;
+
+        setParticipants(participantsWithProfiles);
+      } catch (err) {
+        console.error('Error fetching participant profiles:', err);
+        setParticipants([]);
+      }
+    };
+
+    fetchParticipantProfiles();
   }, [project, responsibilityStatement]);
 
   useEffect(() => {
