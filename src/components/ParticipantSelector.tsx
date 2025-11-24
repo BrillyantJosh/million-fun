@@ -32,7 +32,7 @@ export const ParticipantSelector = ({
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       toast({
-        title: "Vnesite iskalni pojem",
+        title: "Enter search term",
         variant: "destructive",
       });
       return;
@@ -40,8 +40,8 @@ export const ParticipantSelector = ({
 
     if (relays.length === 0) {
       toast({
-        title: "Napaka",
-        description: "Ni povezanih relay-jev",
+        title: "Error",
+        description: "No connected relays",
         variant: "destructive",
       });
       console.error("No relays available for search");
@@ -74,14 +74,12 @@ export const ParticipantSelector = ({
         try {
           const profile = JSON.parse(event.content) as NostrProfile;
           
-          // Search in name, display_name, about, nip05
+          // Search ONLY in name and display_name (per documentation)
           const searchLower = searchQuery.toLowerCase();
-          if (
-            profile.name?.toLowerCase().includes(searchLower) ||
-            profile.display_name?.toLowerCase().includes(searchLower) ||
-            profile.about?.toLowerCase().includes(searchLower) ||
-            profile.nip05?.toLowerCase().includes(searchLower)
-          ) {
+          const nameMatch = profile.name?.toLowerCase().includes(searchLower);
+          const displayNameMatch = profile.display_name?.toLowerCase().includes(searchLower);
+          
+          if (nameMatch || displayNameMatch) {
             // Don't include owner or already added participants
             if (
               event.pubkey !== ownerPubkey &&
@@ -91,6 +89,7 @@ export const ParticipantSelector = ({
                 pubkey: event.pubkey,
                 profile,
               });
+              console.log(`✅ Match found: ${profile.display_name || profile.name} (${event.pubkey.slice(0, 8)}...)`);
             }
           }
         } catch (error) {
@@ -104,8 +103,8 @@ export const ParticipantSelector = ({
 
       if (results.length === 0) {
         toast({
-          title: "Ni rezultatov",
-          description: "Poskusite z drugim iskalnim pojmom",
+          title: "No results",
+          description: "Try a different search term",
         });
       }
 
@@ -113,8 +112,8 @@ export const ParticipantSelector = ({
     } catch (error) {
       console.error("Search error:", error);
       toast({
-        title: "Napaka pri iskanju",
-        description: "Poskusite znova",
+        title: "Search error",
+        description: "Please try again",
         variant: "destructive",
       });
     } finally {
@@ -126,15 +125,15 @@ export const ParticipantSelector = ({
     onParticipantsChange([...participants, participant]);
     setSearchResults(searchResults.filter((p) => p.pubkey !== participant.pubkey));
     toast({
-      title: "Sodelavec dodan",
-      description: `${participant.profile.display_name || participant.profile.name} je bil dodan projektu`,
+      title: "Participant added",
+      description: `${participant.profile.display_name || participant.profile.name} has been added to the project`,
     });
   };
 
   const removeParticipant = (pubkey: string) => {
     onParticipantsChange(participants.filter((p) => p.pubkey !== pubkey));
     toast({
-      title: "Sodelavec odstranjen",
+      title: "Participant removed",
     });
   };
 
@@ -148,7 +147,7 @@ export const ParticipantSelector = ({
         {/* Search */}
         <div className="flex gap-2 mb-4">
           <Input
-            placeholder="Search by name, display name, about, nip05..."
+            placeholder="Search by name or display name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -197,7 +196,7 @@ export const ParticipantSelector = ({
                   size="sm"
                   onClick={() => addParticipant(result)}
                 >
-                  Dodaj
+                  Add
                 </Button>
               </div>
             ))}
