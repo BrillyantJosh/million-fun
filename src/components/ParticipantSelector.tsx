@@ -38,6 +38,22 @@ export const ParticipantSelector = ({
       return;
     }
 
+    if (relays.length === 0) {
+      toast({
+        title: "Napaka",
+        description: "Ni povezanih relay-jev",
+        variant: "destructive",
+      });
+      console.error("No relays available for search");
+      return;
+    }
+
+    console.log('🔍 Searching for participants...', {
+      query: searchQuery,
+      relays: relays,
+      relayCount: relays.length
+    });
+
     setSearching(true);
     setSearchResults([]);
 
@@ -46,10 +62,12 @@ export const ParticipantSelector = ({
 
       const filter = {
         kinds: [0],
-        limit: 20,
+        limit: 100, // Increased limit to get more results
       };
 
+      console.log('📡 Querying relays with filter:', filter);
       const events = await pool.querySync(relays, filter);
+      console.log(`📥 Received ${events.length} KIND 0 events`);
 
       const results: Participant[] = [];
       for (const event of events) {
@@ -81,6 +99,8 @@ export const ParticipantSelector = ({
       }
 
       pool.close(relays);
+
+      console.log(`✅ Search completed. Found ${results.length} matching profiles`);
 
       if (results.length === 0) {
         toast({
@@ -122,13 +142,13 @@ export const ParticipantSelector = ({
     <div className="space-y-4">
       <div>
         <label className="text-sm font-medium mb-2 block">
-          Sodelavci na projektu
+          Project Participants
         </label>
         
         {/* Search */}
         <div className="flex gap-2 mb-4">
           <Input
-            placeholder="Iskanje po imenu, display name, about, nip05..."
+            placeholder="Search by name, display name, about, nip05..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -150,7 +170,7 @@ export const ParticipantSelector = ({
         {/* Search Results */}
         {searchResults.length > 0 && (
           <div className="space-y-2 mb-4 p-3 border rounded-lg bg-muted/50">
-            <p className="text-sm font-medium mb-2">Rezultati iskanja:</p>
+            <p className="text-sm font-medium mb-2">Search Results:</p>
             {searchResults.map((result) => (
               <div
                 key={result.pubkey}
@@ -188,7 +208,7 @@ export const ParticipantSelector = ({
         {participants.length > 0 && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground mb-2">
-              Dodani sodelavci ({participants.length}):
+              Added participants ({participants.length}):
             </p>
             {participants.map((participant) => (
               <div
