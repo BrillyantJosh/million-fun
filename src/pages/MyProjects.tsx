@@ -4,8 +4,7 @@ import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, ArrowLeft, Loader2, Edit, AlertTriangle } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Plus, ArrowLeft, Loader2, Edit } from "lucide-react";
 import { useUserProjects } from "@/hooks/useUserProjects";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import type { NostrProject } from "@/hooks/useUserProjects";
@@ -101,16 +100,10 @@ const MyProjects = () => {
                     alt={project.title}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
-                  <div className="absolute top-3 left-3 flex gap-2">
+                  <div className="absolute top-3 left-3">
                     <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                       {project.currency}
                     </span>
-                    {project.restricted && (
-                      <Badge variant="destructive" className="gap-1.5">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        RESTRICTED
-                      </Badge>
-                    )}
                   </div>
                   <div className="absolute top-3 right-3">
                     <Button

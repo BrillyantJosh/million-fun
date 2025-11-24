@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { SimplePool, Filter } from "nostr-tools";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProfile } from "@/types/nostrProfile";
-import { supabase } from "@/integrations/supabase/client";
 
 export interface NostrProject {
   id: string;
@@ -19,7 +18,6 @@ export interface NostrProject {
   ownerProfile?: NostrProfile;
   createdAt: number;
   responsibilityStatement?: string;
-  restricted?: boolean;
 }
 
 export const useAllProjects = () => {
@@ -158,34 +156,8 @@ export const useAllProjects = () => {
           }
         }
 
-        // Fetch restricted status from database
-        const eventIds = parsedProjects.map(p => p.eventId);
-        if (eventIds.length > 0) {
-          try {
-            const { data: restrictedData, error: restrictedError } = await supabase
-              .from("projects")
-              .select("nostr_event_id, restricted")
-              .in("nostr_event_id", eventIds);
-
-            if (!restrictedError && restrictedData) {
-              const restrictedMap = new Map(
-                restrictedData.map(item => [item.nostr_event_id, item.restricted])
-              );
-
-              parsedProjects.forEach(project => {
-                project.restricted = restrictedMap.get(project.eventId) || false;
-              });
-            }
-          } catch (err) {
-            console.error("Error fetching restricted status:", err);
-          }
-        }
-
-        // Filter out restricted projects for public view
-        const publicProjects = parsedProjects.filter(p => !p.restricted);
-
-        console.log('🌍 Parsed projects:', publicProjects);
-        setProjects(publicProjects);
+        console.log('🌍 Parsed projects:', parsedProjects);
+        setProjects(parsedProjects);
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch projects");
