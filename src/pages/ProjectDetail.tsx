@@ -458,6 +458,34 @@ const ProjectDetail = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Project Type */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-base">
+                    Project Type
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-lg px-4 py-2">
+                    {project.projectType || "Not specified"}
+                  </Badge>
+                </div>
+                {project.projectType && (project.projectType === "Inspiration" || project.projectType === "Enhancement") && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This project type has funding limits
+                  </p>
+                )}
+                {project.projectType && (project.projectType === "Agreement" || project.projectType === "Awareness") && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    This project type has no funding limits
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+            
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
