@@ -32,30 +32,6 @@ export type Database = {
         }
         Relationships: []
       }
-      projects: {
-        Row: {
-          created_at: string
-          id: string
-          nostr_event_id: string
-          restricted: boolean
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          nostr_event_id: string
-          restricted?: boolean
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          nostr_event_id?: string
-          restricted?: boolean
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never

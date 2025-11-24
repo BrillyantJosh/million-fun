@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
-import { Footer } from "@/components/Footer";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectGrid } from "@/components/ProjectGrid";
@@ -30,7 +29,6 @@ const AdminDashboard = () => {
           </div>
         </main>
         <BottomNav />
-        <Footer />
       </div>
     );
   }
@@ -61,7 +59,6 @@ const AdminDashboard = () => {
         </Card>
       </main>
       <BottomNav />
-      <Footer />
     </div>
   );
 };
