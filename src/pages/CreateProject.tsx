@@ -15,6 +15,7 @@ import type { LanaSystemParameters } from "@/types/nostr";
 import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft, Upload, Image as ImageIcon } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import { uploadProjectImage } from "@/lib/uploadImage";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -25,10 +26,12 @@ const CreateProject = () => {
   const [images, setImages] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [projectType, setProjectType] = useState<"financing_inspirations" | "enhancing_current_system">("financing_inspirations");
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
+  const { data: settings } = useAppSettings();
 
   const [formData, setFormData] = useState<ProjectData>({
     title: "",
@@ -309,6 +312,27 @@ const CreateProject = () => {
                   />
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="projectType">Project Type *</Label>
+                  <Select
+                    value={projectType}
+                    onValueChange={(value: "financing_inspirations" | "enhancing_current_system") => setProjectType(value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="financing_inspirations">Financing Inspirations</SelectItem>
+                      <SelectItem value="enhancing_current_system">Enhancing Current System</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {settings && (
+                    <p className="text-sm text-muted-foreground">
+                      Maximum funding amount: {settings[projectType].toLocaleString()} {formData.currency}
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="fiatGoal">Funding Goal *</Label>
@@ -320,6 +344,11 @@ const CreateProject = () => {
                       placeholder="10,000.00"
                       required
                     />
+                    {settings && parseFloat(formData.fiatGoal.replace(/,/g, '')) > settings[projectType] && (
+                      <p className="text-sm text-destructive">
+                        Amount exceeds maximum limit of {settings[projectType].toLocaleString()}
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
