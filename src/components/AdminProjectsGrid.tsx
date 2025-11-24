@@ -1,6 +1,7 @@
 import { AdminProjectCard } from "./AdminProjectCard";
 import { useAllProjects } from "@/hooks/useAllProjects";
 import { useNostrConnection } from "@/hooks/useNostrConnection";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { useState } from "react";
 
 export const AdminProjectsGrid = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { data: settings } = useAppSettings();
   const {
     loading: connectionLoading,
     error: connectionError
@@ -50,6 +52,21 @@ export const AdminProjectsGrid = () => {
     );
   }
 
+  if (!settings?.nostr_key || !settings?.nostr_hex_id) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-muted-foreground mb-2">
+            Authority Nostr credentials not configured
+          </p>
+          <p className="text-sm text-destructive">
+            Please configure Authority Nostr Private Key and Hex ID in the Settings tab to manage project visibility.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -74,6 +91,8 @@ export const AdminProjectsGrid = () => {
               key={`${project.id}-${refreshKey}`} 
               project={project}
               onStatusChange={handleStatusChange}
+              authorityNostrKey={settings.nostr_key!}
+              authorityNostrHexId={settings.nostr_hex_id!}
             />
           ))}
         </div>

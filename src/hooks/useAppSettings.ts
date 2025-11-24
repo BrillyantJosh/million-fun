@@ -5,6 +5,8 @@ export interface AppSettings {
   id: string;
   financing_inspirations: number;
   enhancing_current_system: number;
+  nostr_key: string | null;
+  nostr_hex_id: string | null;
   created_at: string;
   updated_at: string;
 }

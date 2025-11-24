@@ -38,6 +38,8 @@ export type Database = {
           enhancing_current_system: number
           financing_inspirations: number
           id: string
+          nostr_hex_id: string | null
+          nostr_key: string | null
           updated_at: string
         }
         Insert: {
@@ -45,6 +47,8 @@ export type Database = {
           enhancing_current_system?: number
           financing_inspirations?: number
           id?: string
+          nostr_hex_id?: string | null
+          nostr_key?: string | null
           updated_at?: string
         }
         Update: {
@@ -52,6 +56,8 @@ export type Database = {
           enhancing_current_system?: number
           financing_inspirations?: number
           id?: string
+          nostr_hex_id?: string | null
+          nostr_key?: string | null
           updated_at?: string
         }
         Relationships: []

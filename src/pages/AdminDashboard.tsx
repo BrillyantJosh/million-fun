@@ -21,6 +21,8 @@ const AdminDashboard = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [financingInspirations, setFinancingInspirations] = useState("");
   const [enhancingCurrentSystem, setEnhancingCurrentSystem] = useState("");
+  const [nostrKey, setNostrKey] = useState("");
+  const [nostrHexId, setNostrHexId] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAdmin) {
@@ -32,9 +34,13 @@ const AdminDashboard = () => {
     if (settings) {
       setFinancingInspirations(settings.financing_inspirations.toString());
       setEnhancingCurrentSystem(settings.enhancing_current_system.toString());
+      setNostrKey(settings.nostr_key || "");
+      setNostrHexId(settings.nostr_hex_id || "");
     } else {
       setFinancingInspirations("10000");
       setEnhancingCurrentSystem("5000");
+      setNostrKey("");
+      setNostrHexId("");
     }
   }, [settings]);
 
@@ -54,6 +60,8 @@ const AdminDashboard = () => {
           .insert({
             financing_inspirations: financingValue,
             enhancing_current_system: enhancingValue,
+            nostr_key: nostrKey || null,
+            nostr_hex_id: nostrHexId || null,
           });
         
         if (error) throw error;
@@ -68,6 +76,8 @@ const AdminDashboard = () => {
           .update({
             financing_inspirations: financingValue,
             enhancing_current_system: enhancingValue,
+            nostr_key: nostrKey || null,
+            nostr_hex_id: nostrHexId || null,
           })
           .eq("id", settings.id);
 
@@ -164,6 +174,34 @@ const AdminDashboard = () => {
                     onChange={(e) => setEnhancingCurrentSystem(e.target.value)}
                     placeholder="5000.00"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nostrKey">Authority Nostr Private Key</Label>
+                  <Input
+                    id="nostrKey"
+                    type="password"
+                    value={nostrKey}
+                    onChange={(e) => setNostrKey(e.target.value)}
+                    placeholder="Enter authority private key"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Used for signing project visibility events (KIND 31235)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="nostrHexId">Authority Nostr Hex ID</Label>
+                  <Input
+                    id="nostrHexId"
+                    type="text"
+                    value={nostrHexId}
+                    onChange={(e) => setNostrHexId(e.target.value)}
+                    placeholder="18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Must be: 18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e
+                  </p>
                 </div>
 
                 <Button onClick={handleSaveSettings} disabled={isSaving}>
