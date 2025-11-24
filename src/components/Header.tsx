@@ -17,11 +17,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getUserSession, clearUserSession } from "@/lib/auth";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { Shield } from "lucide-react";
 
 export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const session = getUserSession();
+  const { isAdmin } = useIsAdmin();
   const isAuthenticated = !!session;
   const isLandingPage = location.pathname === "/";
 
@@ -82,6 +85,12 @@ export const Header = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56 bg-background">
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")} className="cursor-pointer">
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Admin Panel</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Sign out</span>
