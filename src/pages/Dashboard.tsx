@@ -1,5 +1,4 @@
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { ProjectGrid } from "@/components/ProjectGrid";
 import { BottomNav } from "@/components/BottomNav";
 
@@ -10,7 +9,6 @@ const Dashboard = () => {
       <main className="flex-1">
         <ProjectGrid />
       </main>
-      <Footer />
       <BottomNav />
     </div>
   );
