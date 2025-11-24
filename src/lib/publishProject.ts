@@ -21,6 +21,7 @@ export interface ProjectData {
   videoUrl?: string;
   images?: string[];
   coverImage?: string;
+  participants?: string[]; // Array of participant pubkeys
 }
 
 export interface PublishResult {
@@ -53,6 +54,10 @@ export async function publishProjectToNostr(
     ["wallet", projectData.walletId],
     ["responsibility_statement", projectData.responsibilityStatement],
     ["p", ownerNostrHex, "owner"],
+    
+    // Add participant tags
+    ...(projectData.participants?.map(pubkey => ["p", pubkey, "participant"]) || []),
+    
     ["timestamp_created", Math.floor(Date.now() / 1000).toString()]
   ];
 
