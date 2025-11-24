@@ -6,7 +6,7 @@ export const BottomNav = () => {
       <nav className="w-full h-16 grid grid-cols-3">
         <NavLink to="/dashboard" className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors" activeClassName="text-primary">
           <Home className="h-5 w-5" />
-          <span className="text-xs">All</span>
+          <span className="text-xs">All Projects </span>
         </NavLink>
         <NavLink to="/my-projects" className="flex flex-col items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors" activeClassName="text-primary">
           <User className="h-5 w-5" />
