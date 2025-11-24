@@ -18,6 +18,7 @@ export interface NostrProject {
   videoUrl?: string;
   owner: string;
   createdAt: number;
+  responsibilityStatement?: string;
 }
 
 export const useUserProjects = () => {
@@ -157,7 +158,8 @@ export const useUserProjects = () => {
                 galleryImages,
                 videoUrl: getTag("video"),
                 owner: session.nostrHexId,
-                createdAt: event.created_at
+                createdAt: event.created_at,
+                responsibilityStatement: getTag("responsibility_statement")
               };
             });
 
