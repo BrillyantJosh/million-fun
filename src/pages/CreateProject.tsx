@@ -26,7 +26,6 @@ const CreateProject = () => {
   const [images, setImages] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [projectType, setProjectType] = useState<"financing_inspirations" | "enhancing_current_system">("financing_inspirations");
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,6 +40,7 @@ const CreateProject = () => {
     currency: "EUR",
     walletId: "",
     responsibilityStatement: "",
+    projectType: "Inspiration",
     videoUrl: "",
     images: []
   });
@@ -206,6 +206,7 @@ const CreateProject = () => {
         currency: "EUR",
         walletId: "",
         responsibilityStatement: "",
+        projectType: "Inspiration",
         videoUrl: "",
         images: []
       });
@@ -314,28 +315,31 @@ const CreateProject = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="projectType">Project Type *</Label>
-                  {settings ? (
-                    <>
-                      <Select
-                        value={projectType}
-                        onValueChange={(value: "financing_inspirations" | "enhancing_current_system") => setProjectType(value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select project type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="financing_inspirations">Financing Inspirations</SelectItem>
-                          <SelectItem value="enhancing_current_system">Enhancing Current System</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <p className="text-sm text-muted-foreground">
-                        Maximum funding amount: {settings[projectType].toLocaleString()} {formData.currency}
-                      </p>
-                    </>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      Loading project limits...
-                    </div>
+                  <Select
+                    value={formData.projectType}
+                    onValueChange={(value) => setFormData({ ...formData, projectType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select project type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Inspiration">Inspiration</SelectItem>
+                      <SelectItem value="Enhancement">Enhancement</SelectItem>
+                      <SelectItem value="Agreement">Agreement</SelectItem>
+                      <SelectItem value="Awareness">Awareness</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {settings && (formData.projectType === "Inspiration" || formData.projectType === "Enhancement") && (
+                    <p className="text-sm text-muted-foreground">
+                      Maximum funding amount: {(formData.projectType === "Inspiration" 
+                        ? settings.financing_inspirations 
+                        : settings.enhancing_current_system).toLocaleString()} {formData.currency}
+                    </p>
+                  )}
+                  {(formData.projectType === "Agreement" || formData.projectType === "Awareness") && (
+                    <p className="text-sm text-muted-foreground">
+                      No funding limit for this project type
+                    </p>
                   )}
                 </div>
 
@@ -350,9 +354,9 @@ const CreateProject = () => {
                       placeholder="10,000.00"
                       required
                     />
-                    {settings && parseFloat(formData.fiatGoal.replace(/,/g, '')) > settings[projectType] && (
+                    {settings && (formData.projectType === "Inspiration" || formData.projectType === "Enhancement") && parseFloat(formData.fiatGoal.replace(/,/g, '')) > (formData.projectType === "Inspiration" ? settings.financing_inspirations : settings.enhancing_current_system) && (
                       <p className="text-sm text-destructive">
-                        Amount exceeds maximum limit of {settings[projectType].toLocaleString()}
+                        Amount exceeds maximum limit of {(formData.projectType === "Inspiration" ? settings.financing_inspirations : settings.enhancing_current_system).toLocaleString()}
                       </p>
                     )}
                   </div>

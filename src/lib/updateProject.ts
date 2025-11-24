@@ -18,6 +18,7 @@ export interface ProjectData {
   currency: string;
   walletId: string;
   responsibilityStatement: string;
+  projectType: string;
   videoUrl?: string;
   images?: string[];
   coverImage?: string;
@@ -51,6 +52,7 @@ export async function updateProjectOnNostr(
     ["currency", projectData.currency],
     ["wallet", projectData.walletId],
     ["responsibility_statement", projectData.responsibilityStatement],
+    ["project_type", projectData.projectType],
     ["p", ownerNostrHex, "owner"],
     
     // Add participant tags

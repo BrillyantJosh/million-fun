@@ -13,6 +13,7 @@ import { Loader2, CheckCircle2, XCircle, Plus, X } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import { ParticipantSelector } from "./ParticipantSelector";
 import type { NostrProfile } from "@/types/nostrProfile";
+import { useAppSettings } from "@/hooks/useAppSettings";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
   const [participants, setParticipants] = useState<Array<{ pubkey: string; profile: NostrProfile }>>([]);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
+  const { data: settings } = useAppSettings();
 
   const [formData, setFormData] = useState<ProjectData>({
     title: "",
@@ -38,6 +40,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     currency: "EUR",
     walletId: "",
     responsibilityStatement: "",
+    projectType: "Inspiration",
     videoUrl: "",
     images: []
   });
@@ -175,6 +178,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
         currency: "EUR",
         walletId: "",
         responsibilityStatement: "",
+        projectType: "Inspiration",
         videoUrl: "",
         images: []
       });
@@ -275,6 +279,36 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
                 rows={6}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectType">Project Type *</Label>
+              <Select
+                value={formData.projectType}
+                onValueChange={(value) => setFormData({ ...formData, projectType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Inspiration">Inspiration</SelectItem>
+                  <SelectItem value="Enhancement">Enhancement</SelectItem>
+                  <SelectItem value="Agreement">Agreement</SelectItem>
+                  <SelectItem value="Awareness">Awareness</SelectItem>
+                </SelectContent>
+              </Select>
+              {settings && (formData.projectType === "Inspiration" || formData.projectType === "Enhancement") && (
+                <p className="text-sm text-muted-foreground">
+                  Maximum funding amount: {(formData.projectType === "Inspiration" 
+                    ? settings.financing_inspirations 
+                    : settings.enhancing_current_system).toLocaleString()} {formData.currency}
+                </p>
+              )}
+              {(formData.projectType === "Agreement" || formData.projectType === "Awareness") && (
+                <p className="text-sm text-muted-foreground">
+                  No funding limit for this project type
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
