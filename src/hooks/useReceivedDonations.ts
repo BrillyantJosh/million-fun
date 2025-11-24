@@ -117,20 +117,28 @@ export const useReceivedDonations = () => {
 
         // Fetch supporter profiles (KIND 0)
         if (supporterIds.size > 0) {
+          console.log("👤 Fetching profiles for supporters:", Array.from(supporterIds));
+          console.log("👤 Using relays:", relays);
+          
           const pool2 = new SimplePool();
           const profileFilter: Filter = {
             kinds: [0],
             authors: Array.from(supporterIds),
           };
 
+          console.log("👤 Profile filter:", profileFilter);
           const profileEvents = await pool2.querySync(relays, profileFilter);
+          console.log("👤 Found profile events:", profileEvents.length);
           pool2.close(relays);
 
           const supporterProfiles = new Map<string, string>();
           for (const profileEvent of profileEvents) {
             try {
+              console.log("👤 Processing profile for:", profileEvent.pubkey);
               const profile = JSON.parse(profileEvent.content);
+              console.log("👤 Profile content:", profile);
               const name = profile.display_name || profile.name || "";
+              console.log("👤 Extracted name:", name);
               if (name) {
                 supporterProfiles.set(profileEvent.pubkey, name);
               }
@@ -139,9 +147,12 @@ export const useReceivedDonations = () => {
             }
           }
 
+          console.log("👤 Supporter profiles map:", supporterProfiles);
+
           // Update supporter names
           receivedDonations.forEach(donation => {
             const name = supporterProfiles.get(donation.supporter);
+            console.log(`👤 Updating donation ${donation.id}: supporter ${donation.supporter} -> name: ${name}`);
             if (name) {
               donation.supporterName = name;
             }
