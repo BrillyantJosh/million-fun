@@ -1,7 +1,15 @@
 import { Button } from "@/components/ui/button";
-import { Coins, Menu, LogOut } from "lucide-react";
+import { Coins, Menu, LogOut, Network } from "lucide-react";
 import { NostrDataDialog } from "./NostrDataDialog";
+import { NostrNetworkStatus } from "./NostrNetworkStatus";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +55,20 @@ export const Header = () => {
 
           <div className="flex items-center gap-4">
             <NostrDataDialog />
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Network className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Nostr Network Status</DialogTitle>
+                </DialogHeader>
+                <NostrNetworkStatus />
+              </DialogContent>
+            </Dialog>
             
             {isAuthenticated ? (
               <>
