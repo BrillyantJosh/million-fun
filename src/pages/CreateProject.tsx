@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -12,8 +12,9 @@ import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
 import { publishProjectToNostr, ProjectData, PublishResult } from "@/lib/publishProject";
 import type { LanaSystemParameters } from "@/types/nostr";
-import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft, Upload, Image as ImageIcon } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
+import { uploadProjectImage } from "@/lib/uploadImage";
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -22,7 +23,10 @@ const CreateProject = () => {
   const [eventId, setEventId] = useState<string>("");
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
+  const [coverImage, setCoverImage] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
 
@@ -65,10 +69,45 @@ const CreateProject = () => {
     setFormData({ ...formData, fiatGoal: formatted });
   };
 
-  const addImage = () => {
-    if (newImageUrl.trim()) {
-      setImages([...images, newImageUrl.trim()]);
-      setNewImageUrl("");
+  const handleCoverImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { url } = await uploadProjectImage(file, 'cover');
+      setCoverImage(url);
+      toast({ title: "Success", description: "Cover image uploaded successfully" });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (coverInputRef.current) coverInputRef.current.value = '';
+    }
+  };
+
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const { url } = await uploadProjectImage(file, 'gallery');
+      setImages([...images, url]);
+      toast({ title: "Success", description: "Gallery image uploaded successfully" });
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive"
+      });
+    } finally {
+      setUploadingImage(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
     }
   };
 
@@ -139,7 +178,7 @@ const CreateProject = () => {
 
     try {
       const result = await publishProjectToNostr(
-        { ...formData, images },
+        { ...formData, images, coverImage },
         session.privateKeyHex,
         session.nostrHexId,
         relays
@@ -168,6 +207,7 @@ const CreateProject = () => {
         images: []
       });
       setImages([]);
+      setCoverImage("");
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
@@ -357,35 +397,112 @@ const CreateProject = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Project Images (Optional)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="url"
-                      value={newImageUrl}
-                      onChange={(e) => setNewImageUrl(e.target.value)}
-                      placeholder="https://example.com/image.jpg"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          addImage();
-                        }
-                      }}
+                  <Label htmlFor="coverImage">Cover Image *</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Main project image (displayed in lists and on project page)
+                  </p>
+                  <div className="space-y-2">
+                    {coverImage ? (
+                      <div className="relative">
+                        <img 
+                          src={coverImage} 
+                          alt="Cover preview" 
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setCoverImage("")}
+                          className="absolute top-2 right-2"
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          ref={coverInputRef}
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/webp"
+                          onChange={handleCoverImageUpload}
+                          className="hidden"
+                          id="cover-upload"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => coverInputRef.current?.click()}
+                          disabled={uploadingImage}
+                          className="w-full"
+                        >
+                          {uploadingImage ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload Cover Image
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Gallery Images (Optional)</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Additional images shown on the project page
+                  </p>
+                  <div>
+                    <input
+                      ref={galleryInputRef}
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleGalleryImageUpload}
+                      className="hidden"
+                      id="gallery-upload"
                     />
-                    <Button type="button" onClick={addImage} variant="outline" size="icon">
-                      <Plus className="h-4 w-4" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="w-full"
+                    >
+                      {uploadingImage ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="mr-2 h-4 w-4" />
+                          Add Gallery Image
+                        </>
+                      )}
                     </Button>
                   </div>
                   {images.length > 0 && (
-                    <div className="space-y-2 mt-2">
+                    <div className="grid grid-cols-2 gap-2 mt-2">
                       {images.map((img, idx) => (
-                        <div key={idx} className="flex items-center gap-2 p-2 bg-muted rounded">
-                          <span className="text-xs flex-1 truncate">{img}</span>
+                        <div key={idx} className="relative">
+                          <img 
+                            src={img} 
+                            alt={`Gallery ${idx + 1}`} 
+                            className="w-full h-32 object-cover rounded-lg"
+                          />
                           <Button
                             type="button"
                             onClick={() => removeImage(idx)}
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-1 right-1"
                           >
                             <X className="h-3 w-3" />
                           </Button>
