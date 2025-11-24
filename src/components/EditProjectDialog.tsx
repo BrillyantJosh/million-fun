@@ -13,6 +13,8 @@ import type { NostrProject } from "@/hooks/useUserProjects";
 import { Loader2, CheckCircle2, XCircle, Upload, Image as ImageIcon, X } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import { uploadProjectImage } from "@/lib/uploadImage";
+import { ParticipantSelector } from "./ParticipantSelector";
+import type { NostrProfile } from "@/types/nostrProfile";
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -38,6 +40,7 @@ export const EditProjectDialog = ({
   const [uploadingImage, setUploadingImage] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [participants, setParticipants] = useState<Array<{ pubkey: string; profile: NostrProfile }>>([]);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
 
@@ -69,6 +72,26 @@ export const EditProjectDialog = ({
       images: project.galleryImages || [],
       coverImage: project.coverImage || ""
     });
+    
+    // Load participants - for now use placeholder profiles
+    if (project.participants && project.participants.length > 0) {
+      setParticipants(project.participants.map(pubkey => ({
+        pubkey,
+        profile: { 
+          name: pubkey.slice(0, 8),
+          display_name: pubkey.slice(0, 8),
+          about: '',
+          location: '',
+          country: '',
+          currency: 'EUR',
+          lanoshi2lash: '',
+          whoAreYou: '',
+          orgasmic_profile: ''
+        } as NostrProfile
+      })));
+    } else {
+      setParticipants([]);
+    }
   }, [project, responsibilityStatement]);
 
   useEffect(() => {
@@ -206,7 +229,12 @@ export const EditProjectDialog = ({
     try {
       const result = await updateProjectOnNostr(
         project.id,
-        { ...formData, images, coverImage },
+        { 
+          ...formData, 
+          images, 
+          coverImage,
+          participants: participants.map(p => p.pubkey)
+        },
         session.privateKeyHex,
         session.nostrHexId,
         relays
@@ -515,6 +543,27 @@ export const EditProjectDialog = ({
                 </div>
               )}
             </div>
+
+            {/* Participants Section */}
+            <ParticipantSelector
+              participants={participants}
+              onParticipantsChange={setParticipants}
+              relays={(() => {
+                try {
+                  const cached = sessionStorage.getItem('lana_system_parameters');
+                  if (cached) {
+                    const { relayStatuses } = JSON.parse(cached);
+                    return relayStatuses
+                      .filter((r: any) => r.connected)
+                      .map((r: any) => r.url);
+                  }
+                  return [];
+                } catch {
+                  return [];
+                }
+              })()}
+              ownerPubkey={project.owner}
+            />
 
             <div className="flex gap-2 pt-4">
               <Button

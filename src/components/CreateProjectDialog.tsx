@@ -11,6 +11,8 @@ import { publishProjectToNostr, ProjectData, PublishResult } from "@/lib/publish
 import type { LanaSystemParameters } from "@/types/nostr";
 import { Loader2, CheckCircle2, XCircle, Plus, X } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
+import { ParticipantSelector } from "./ParticipantSelector";
+import type { NostrProfile } from "@/types/nostrProfile";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -24,6 +26,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [participants, setParticipants] = useState<Array<{ pubkey: string; profile: NostrProfile }>>([]);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
 
@@ -143,7 +146,11 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
 
     try {
       const result = await publishProjectToNostr(
-        { ...formData, images },
+        { 
+          ...formData, 
+          images,
+          participants: participants.map(p => p.pubkey)
+        },
         session.privateKeyHex,
         session.nostrHexId,
         relays
@@ -172,6 +179,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
         images: []
       });
       setImages([]);
+      setParticipants([]);
 
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
@@ -189,6 +197,7 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
     setPublishResults(null);
     setEventId("");
     setImages([]);
+    setParticipants([]);
     onOpenChange(false);
   };
 
@@ -393,6 +402,34 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
                 </div>
               )}
             </div>
+
+            {/* Participants Section */}
+            <ParticipantSelector
+              participants={participants}
+              onParticipantsChange={setParticipants}
+              relays={(() => {
+                try {
+                  const cached = sessionStorage.getItem('lana_system_parameters');
+                  if (cached) {
+                    const { relayStatuses } = JSON.parse(cached);
+                    return relayStatuses
+                      .filter((r: any) => r.connected)
+                      .map((r: any) => r.url);
+                  }
+                  return [];
+                } catch {
+                  return [];
+                }
+              })()}
+              ownerPubkey={(() => {
+                try {
+                  const session = getUserSession();
+                  return session?.nostrHexId || '';
+                } catch {
+                  return '';
+                }
+              })()}
+            />
 
             <div className="flex gap-2 pt-4">
               <Button

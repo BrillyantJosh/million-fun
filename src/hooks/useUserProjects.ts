@@ -19,6 +19,7 @@ export interface NostrProject {
   owner: string;
   createdAt: number;
   responsibilityStatement?: string;
+  participants?: string[]; // Array of participant pubkeys
 }
 
 export const useUserProjects = () => {
@@ -159,7 +160,8 @@ export const useUserProjects = () => {
                 videoUrl: getTag("video"),
                 owner: session.nostrHexId,
                 createdAt: event.created_at,
-                responsibilityStatement: getTag("responsibility_statement")
+                responsibilityStatement: getTag("responsibility_statement"),
+                participants: getAllTags("p", "participant")
               };
             });
 
