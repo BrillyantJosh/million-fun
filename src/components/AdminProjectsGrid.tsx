@@ -18,7 +18,7 @@ export const AdminProjectsGrid = () => {
     projects,
     loading,
     error
-  } = useAllProjects();
+  } = useAllProjects(true); // Include blocked projects for admin
 
   const handleStatusChange = () => {
     // Trigger refresh

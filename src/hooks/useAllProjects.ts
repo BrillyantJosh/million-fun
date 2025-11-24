@@ -21,7 +21,7 @@ export interface NostrProject {
   projectType?: string;
 }
 
-export const useAllProjects = () => {
+export const useAllProjects = (includeBlocked = false) => {
   const [projects, setProjects] = useState<NostrProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -158,8 +158,61 @@ export const useAllProjects = () => {
           }
         }
 
-        console.log('🌍 Parsed projects:', parsedProjects);
-        setProjects(parsedProjects);
+        // Fetch visibility status (KIND 31235) if not including blocked projects
+        let filteredProjects = parsedProjects;
+        if (!includeBlocked) {
+          try {
+            const AUTHORITY_PUBKEY = "18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e";
+            const pool3 = new SimplePool();
+            const visibilityFilter: Filter = {
+              kinds: [31235],
+              authors: [AUTHORITY_PUBKEY],
+            };
+
+            const visibilityEvents = await pool3.querySync(relays, visibilityFilter);
+            pool3.close(relays);
+
+            console.log('🔍 Visibility events found:', visibilityEvents.length);
+
+            // Create a map of project ID -> visibility status
+            const visibilityMap = new Map<string, string>();
+            for (const event of visibilityEvents) {
+              const dTag = event.tags.find(t => t[0] === "d")?.[1];
+              const statusTag = event.tags.find(t => t[0] === "status")?.[1];
+              
+              if (dTag && statusTag) {
+                const projectId = dTag.replace("project:", "");
+                const existing = visibilityMap.get(projectId);
+                
+                // Keep most recent visibility status
+                if (!existing) {
+                  visibilityMap.set(projectId, statusTag);
+                }
+              }
+            }
+
+            // Filter out blocked projects
+            filteredProjects = parsedProjects.filter(project => {
+              const status = visibilityMap.get(project.id);
+              // If no KIND 31235 exists, project is visible by default
+              // Only hide if explicitly blocked
+              if (status === 'blocked') {
+                console.log(`🚫 Filtering out blocked project: ${project.id}`);
+                return false;
+              }
+              return true;
+            });
+
+            console.log(`✅ Filtered projects: ${filteredProjects.length} visible out of ${parsedProjects.length} total`);
+          } catch (err) {
+            console.error("Error fetching visibility status:", err);
+            // If visibility check fails, show all projects (fail open)
+            filteredProjects = parsedProjects;
+          }
+        }
+
+        console.log('🌍 Final projects:', filteredProjects);
+        setProjects(filteredProjects);
       } catch (err) {
         console.error("Error fetching projects:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch projects");
@@ -169,7 +222,7 @@ export const useAllProjects = () => {
     };
 
     fetchAllProjects();
-  }, []);
+  }, [includeBlocked]);
 
   return { projects, loading, error };
 };
