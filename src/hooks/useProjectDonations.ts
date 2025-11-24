@@ -57,22 +57,23 @@ export const useProjectDonations = (projectId: string | undefined) => {
 
         const pool = new SimplePool();
         
+        // Important: we fetch ALL 60200 events and filter by project tag in code,
+        // because some relays might not index custom tag filters correctly.
         const filter: Filter = {
           kinds: [60200],
-          "#project": [`project:${projectId}`],
           limit: 500,
         };
 
-        console.log("🔍 Filter being used:", JSON.stringify(filter, null, 2));
+        console.log("🔍 Raw Nostr filter (no tag filters):", JSON.stringify(filter, null, 2));
         console.log("💰 Fetching donations for project:", projectId);
         console.log("🔗 Querying relays:", relays);
 
         const events = await pool.querySync(relays, filter);
-        console.log("💰 Total donation events found:", events.length);
+        console.log("💰 Total donation events found (all projects):", events.length);
         
         if (events.length > 0) {
-          console.log("📋 First event sample:", events[0]);
-          console.log("📋 All event IDs:", events.map(e => e.id));
+          console.log("📋 First raw donation event:", events[0]);
+          console.log("📋 All donation event IDs:", events.map(e => e.id));
         }
         
         pool.close(relays);
@@ -86,12 +87,19 @@ export const useProjectDonations = (projectId: string | undefined) => {
             console.log("  Tags:", event.tags);
             
             const serviceTag = event.tags.find((t) => t[0] === "service")?.[1];
+            const projectTag = event.tags.find((t) => t[0] === "project")?.[1];
             const supporter = event.tags.find((t) => t[0] === "p" && t[2] === "supporter")?.[1];
             
-            console.log(`  serviceTag: ${serviceTag}, supporter: ${supporter}`);
+            console.log(`  serviceTag: ${serviceTag}, projectTag: ${projectTag}, supporter: ${supporter}`);
             
             if (serviceTag !== "lanacrowd") {
               console.log(`  ⏭️ Skipping event - service is ${serviceTag}, not lanacrowd`);
+              continue;
+            }
+
+            const expectedProjectTag = `project:${projectId}`;
+            if (projectTag !== expectedProjectTag) {
+              console.log(`  ⏭️ Skipping event - projectTag ${projectTag} != expected ${expectedProjectTag}`);
               continue;
             }
 
