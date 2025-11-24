@@ -23,13 +23,17 @@ export const useProjectDonations = (projectId: string | undefined) => {
 
   useEffect(() => {
     if (!projectId) {
+      console.log("❌ No projectId provided to useProjectDonations");
       setLoading(false);
       return;
     }
 
     const fetchProjectDonations = async () => {
+      console.log("🔍 DEBUG: Starting fetchProjectDonations for projectId:", projectId);
+      
       const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
       if (!systemParamsStr) {
+        console.error("❌ System parameters not found in sessionStorage");
         setError("System parameters not found");
         setLoading(false);
         return;
@@ -40,8 +44,12 @@ export const useProjectDonations = (projectId: string | undefined) => {
         setError(null);
 
         const raw = JSON.parse(systemParamsStr);
+        console.log("📦 Raw system params:", raw);
+        
         const systemParams: LanaSystemParameters = raw.parameters ?? raw;
         const relays = systemParams.relays;
+
+        console.log("🔗 Relays from system params:", relays);
 
         if (!relays || relays.length === 0) {
           throw new Error("No relays configured");
@@ -55,10 +63,18 @@ export const useProjectDonations = (projectId: string | undefined) => {
           limit: 500,
         };
 
+        console.log("🔍 Filter being used:", JSON.stringify(filter, null, 2));
         console.log("💰 Fetching donations for project:", projectId);
+        console.log("🔗 Querying relays:", relays);
 
         const events = await pool.querySync(relays, filter);
         console.log("💰 Total donation events found:", events.length);
+        
+        if (events.length > 0) {
+          console.log("📋 First event sample:", events[0]);
+          console.log("📋 All event IDs:", events.map(e => e.id));
+        }
+        
         pool.close(relays);
 
         const projectDonations: ProjectDonation[] = [];
@@ -66,10 +82,16 @@ export const useProjectDonations = (projectId: string | undefined) => {
 
         for (const event of events) {
           try {
+            console.log(`🔍 Processing event ${event.id}`);
+            console.log("  Tags:", event.tags);
+            
             const serviceTag = event.tags.find((t) => t[0] === "service")?.[1];
             const supporter = event.tags.find((t) => t[0] === "p" && t[2] === "supporter")?.[1];
             
+            console.log(`  serviceTag: ${serviceTag}, supporter: ${supporter}`);
+            
             if (serviceTag !== "lanacrowd") {
+              console.log(`  ⏭️ Skipping event - service is ${serviceTag}, not lanacrowd`);
               continue;
             }
 
@@ -81,7 +103,10 @@ export const useProjectDonations = (projectId: string | undefined) => {
             const tx = event.tags.find((t) => t[0] === "tx")?.[1];
             const timestampPaid = event.tags.find((t) => t[0] === "timestamp_paid")?.[1];
 
+            console.log(`  amountFiat: ${amountFiat}, amountLanoshis: ${amountLanoshis}`);
+
             if (!supporter || !amountFiat) {
+              console.log(`  ⏭️ Skipping event - missing supporter (${supporter}) or amountFiat (${amountFiat})`);
               continue;
             }
 
