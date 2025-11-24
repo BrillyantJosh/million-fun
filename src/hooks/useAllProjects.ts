@@ -18,6 +18,7 @@ export interface NostrProject {
   ownerProfile?: NostrProfile;
   createdAt: number;
   responsibilityStatement?: string;
+  projectType?: string;
 }
 
 export const useAllProjects = () => {
@@ -110,6 +111,7 @@ export const useAllProjects = () => {
               owner,
               createdAt: event.created_at,
               responsibilityStatement: getTag("responsibility_statement"),
+              projectType: getTag("project_type"),
             });
           } catch (err) {
             console.error("Error parsing project event:", err);

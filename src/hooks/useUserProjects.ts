@@ -20,6 +20,7 @@ export interface NostrProject {
   createdAt: number;
   responsibilityStatement?: string;
   participants?: string[]; // Array of participant pubkeys
+  projectType?: string;
 }
 
 export const useUserProjects = () => {
@@ -161,7 +162,8 @@ export const useUserProjects = () => {
                 owner: session.nostrHexId,
                 createdAt: event.created_at,
                 responsibilityStatement: getTag("responsibility_statement"),
-                participants: getAllTags("p", "participant")
+                participants: getAllTags("p", "participant"),
+                projectType: getTag("project_type")
               };
             });
 
