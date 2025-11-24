@@ -6,16 +6,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { NostrProject } from "@/hooks/useAllProjects";
 import { publishProjectVisibility } from "@/lib/blockProject";
-import { getUserSession } from "@/lib/auth";
 import { toast } from "@/hooks/use-toast";
 import type { LanaSystemParameters } from "@/types/nostr";
 
 interface AdminProjectCardProps {
   project: NostrProject;
   onStatusChange?: () => void;
+  authorityNostrKey: string;
+  authorityNostrHexId: string;
 }
 
-export const AdminProjectCard = ({ project, onStatusChange }: AdminProjectCardProps) => {
+export const AdminProjectCard = ({ project, onStatusChange, authorityNostrKey, authorityNostrHexId }: AdminProjectCardProps) => {
   const navigate = useNavigate();
   const [isBlocking, setIsBlocking] = useState(false);
   const [isUnblocking, setIsUnblocking] = useState(false);
@@ -23,11 +24,6 @@ export const AdminProjectCard = ({ project, onStatusChange }: AdminProjectCardPr
   const handleBlockProject = async () => {
     setIsBlocking(true);
     try {
-      const session = getUserSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
       const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
       if (!systemParamsStr) {
         throw new Error('System parameters not found');
@@ -45,7 +41,7 @@ export const AdminProjectCard = ({ project, onStatusChange }: AdminProjectCardPr
         project.id,
         'blocked',
         'Blocked by admin',
-        session.privateKeyHex,
+        authorityNostrKey,
         relays
       );
 
@@ -73,11 +69,6 @@ export const AdminProjectCard = ({ project, onStatusChange }: AdminProjectCardPr
   const handleUnblockProject = async () => {
     setIsUnblocking(true);
     try {
-      const session = getUserSession();
-      if (!session) {
-        throw new Error('Not authenticated');
-      }
-
       const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
       if (!systemParamsStr) {
         throw new Error('System parameters not found');
@@ -95,7 +86,7 @@ export const AdminProjectCard = ({ project, onStatusChange }: AdminProjectCardPr
         project.id,
         'visible',
         'Unblocked by admin',
-        session.privateKeyHex,
+        authorityNostrKey,
         relays
       );
 
