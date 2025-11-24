@@ -32,6 +32,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          enhancing_current_system: number
+          financing_inspirations: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enhancing_current_system?: number
+          financing_inspirations?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enhancing_current_system?: number
+          financing_inspirations?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

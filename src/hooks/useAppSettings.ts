@@ -1,0 +1,26 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface AppSettings {
+  id: string;
+  financing_inspirations: number;
+  enhancing_current_system: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const useAppSettings = () => {
+  return useQuery({
+    queryKey: ["app-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("*")
+        .limit(1)
+        .single();
+
+      if (error) throw error;
+      return data as AppSettings;
+    },
+  });
+};
