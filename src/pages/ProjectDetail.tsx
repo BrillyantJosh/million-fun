@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { EditProjectDialog } from "@/components/EditProjectDialog";
+import { getUserSession } from "@/lib/auth";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
 import type { NostrProfile } from "@/types/nostrProfile";
@@ -22,6 +24,9 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responsibilityStatement, setResponsibilityStatement] = useState<string>("");
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -177,7 +182,14 @@ const ProjectDetail = () => {
     };
 
     fetchProjectDetail();
-  }, [projectId]);
+  }, [projectId, refreshKey]);
+
+  useEffect(() => {
+    const session = getUserSession();
+    if (session && project) {
+      setIsOwner(session.nostrHexId === project.owner);
+    }
+  }, [project]);
 
   if (loading) {
     return (
@@ -197,10 +209,19 @@ const ProjectDetail = () => {
       <div className="min-h-screen flex flex-col pb-16">
         <Header />
         <main className="flex-1 container mx-auto px-4 py-8">
-          <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
+          
+          {isOwner && (
+            <Button onClick={() => setEditDialogOpen(true)} variant="outline">
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Project
+            </Button>
+          )}
+        </div>
           <Card>
             <CardContent className="py-8 text-center">
               <p className="text-destructive">{error || "Project not found"}</p>
@@ -403,6 +424,19 @@ const ProjectDetail = () => {
       </main>
       <Footer />
       <BottomNav />
+      
+      {project && (
+        <EditProjectDialog 
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          project={project}
+          responsibilityStatement={responsibilityStatement}
+          onSuccess={() => {
+            setRefreshKey(prev => prev + 1);
+            setEditDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };
