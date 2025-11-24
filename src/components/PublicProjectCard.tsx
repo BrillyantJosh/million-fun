@@ -1,10 +1,11 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Heart, Users } from "lucide-react";
+import { Heart, Users, User } from "lucide-react";
 import { NostrProject } from "@/hooks/useAllProjects";
 import { useProjectSupports } from "@/hooks/useProjectSupports";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface PublicProjectCardProps {
   project: NostrProject;
@@ -52,9 +53,27 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
           <h3 className="text-xl font-bold text-foreground mb-2 line-clamp-2 group-hover:text-primary transition-colors">
             {project.title}
           </h3>
-          <p className="text-muted-foreground text-sm line-clamp-3">
+          <p className="text-muted-foreground text-sm line-clamp-3 mb-3">
             {project.shortDesc}
           </p>
+          
+          {/* Project Initiator */}
+          {project.ownerProfile && (
+            <div className="flex items-center gap-2 mt-3 p-2 bg-muted/50 rounded-lg">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={project.ownerProfile.picture} alt={project.ownerProfile.name} />
+                <AvatarFallback className="text-xs">
+                  {project.ownerProfile.name?.[0]?.toUpperCase() || <User className="h-4 w-4" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Project Initiator</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {project.ownerProfile.display_name || project.ownerProfile.name || "Anonymous"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-3">

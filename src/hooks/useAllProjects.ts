@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SimplePool, Filter } from "nostr-tools";
 import type { LanaSystemParameters } from "@/types/nostr";
+import type { NostrProfile } from "@/types/nostrProfile";
 
 export interface NostrProject {
   id: string;
@@ -14,6 +15,7 @@ export interface NostrProject {
   videoUrl: string;
   walletId: string;
   owner: string;
+  ownerProfile?: NostrProfile;
   createdAt: number;
   responsibilityStatement?: string;
 }
@@ -111,6 +113,46 @@ export const useAllProjects = () => {
             });
           } catch (err) {
             console.error("Error parsing project event:", err);
+          }
+        }
+
+        // Fetch owner profiles
+        const ownerPubkeys = [...new Set(parsedProjects.map(p => p.owner))];
+        if (ownerPubkeys.length > 0) {
+          try {
+            const pool2 = new SimplePool();
+            const profileFilter: Filter = {
+              kinds: [0],
+              authors: ownerPubkeys,
+            };
+
+            const profileEvents = await pool2.querySync(relays, profileFilter);
+            pool2.close(relays);
+
+            // Create a map of pubkey -> profile
+            const profileMap = new Map<string, NostrProfile>();
+            for (const profileEvent of profileEvents) {
+              try {
+                const profile: NostrProfile = JSON.parse(profileEvent.content);
+                const existing = profileMap.get(profileEvent.pubkey);
+                // Keep most recent profile (profileEvent has created_at, not profile)
+                if (!existing) {
+                  profileMap.set(profileEvent.pubkey, profile);
+                }
+              } catch (err) {
+                console.error("Error parsing owner profile:", err);
+              }
+            }
+
+            // Add profiles to projects
+            parsedProjects.forEach(project => {
+              const profile = profileMap.get(project.owner);
+              if (profile) {
+                project.ownerProfile = profile;
+              }
+            });
+          } catch (err) {
+            console.error("Error fetching owner profiles:", err);
           }
         }
 
