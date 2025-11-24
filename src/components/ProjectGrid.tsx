@@ -1,12 +1,15 @@
 import { PublicProjectCard } from "./PublicProjectCard";
 import { useAllProjects } from "@/hooks/useAllProjects";
+import { useNostrConnection } from "@/hooks/useNostrConnection";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const ProjectGrid = () => {
+  const { loading: connectionLoading, error: connectionError } = useNostrConnection();
   const { projects, loading, error } = useAllProjects();
 
-  if (loading) {
+  if (connectionLoading || loading) {
+
     return (
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
@@ -18,13 +21,13 @@ export const ProjectGrid = () => {
     );
   }
 
-  if (error) {
+  if (connectionError || error) {
     return (
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <Card>
             <CardContent className="py-8 text-center">
-              <p className="text-destructive">{error}</p>
+              <p className="text-destructive">{connectionError || error}</p>
             </CardContent>
           </Card>
         </div>
