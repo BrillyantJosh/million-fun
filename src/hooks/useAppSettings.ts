@@ -17,10 +17,10 @@ export const useAppSettings = () => {
         .from("app_settings")
         .select("*")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      return data as AppSettings;
+      return data as AppSettings | null;
     },
   });
 };

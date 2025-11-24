@@ -32,33 +32,58 @@ const AdminDashboard = () => {
     if (settings) {
       setFinancingInspirations(settings.financing_inspirations.toString());
       setEnhancingCurrentSystem(settings.enhancing_current_system.toString());
+    } else {
+      setFinancingInspirations("10000");
+      setEnhancingCurrentSystem("5000");
     }
   }, [settings]);
 
   const handleSaveSettings = async () => {
-    if (!settings) return;
-    
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("app_settings")
-        .update({
-          financing_inspirations: parseFloat(financingInspirations),
-          enhancing_current_system: parseFloat(enhancingCurrentSystem),
-        })
-        .eq("id", settings.id);
+      const financingValue = parseFloat(financingInspirations);
+      const enhancingValue = parseFloat(enhancingCurrentSystem);
 
-      if (error) throw error;
+      if (isNaN(financingValue) || isNaN(enhancingValue)) {
+        throw new Error("Please enter valid numbers");
+      }
 
-      toast({
-        title: "Success",
-        description: "Settings updated successfully",
-      });
+      if (!settings) {
+        const { error } = await supabase
+          .from("app_settings")
+          .insert({
+            financing_inspirations: financingValue,
+            enhancing_current_system: enhancingValue,
+          });
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Settings created successfully",
+        });
+      } else {
+        const { error } = await supabase
+          .from("app_settings")
+          .update({
+            financing_inspirations: financingValue,
+            enhancing_current_system: enhancingValue,
+          })
+          .eq("id", settings.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Success",
+          description: "Settings updated successfully",
+        });
+      }
+      
       refetch();
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to update settings",
+        description: error instanceof Error ? error.message : "Failed to save settings",
         variant: "destructive",
       });
     } finally {
@@ -110,6 +135,13 @@ const AdminDashboard = () => {
                 <CardTitle>Application Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
+                {!settings && (
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                      No settings found. Please set initial values and click Save Settings.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="financing">Financing Inspirations (Max Amount)</Label>
                   <Input

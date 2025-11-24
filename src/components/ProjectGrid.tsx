@@ -3,6 +3,7 @@ import { useAllProjects } from "@/hooks/useAllProjects";
 import { useNostrConnection } from "@/hooks/useNostrConnection";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 export const ProjectGrid = () => {
   const {
     loading: connectionLoading,
@@ -26,8 +27,17 @@ export const ProjectGrid = () => {
     return <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <Card>
-            <CardContent className="py-8 text-center">
-              <p className="text-destructive">{connectionError || error}</p>
+            <CardContent className="py-8 text-center space-y-4">
+              <p className="text-muted-foreground">
+                Unable to connect to the network. This may be temporary.
+              </p>
+              <p className="text-sm text-destructive">{connectionError || error}</p>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.reload()}
+              >
+                Retry Connection
+              </Button>
             </CardContent>
           </Card>
         </div>
