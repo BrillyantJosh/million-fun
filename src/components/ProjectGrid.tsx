@@ -15,7 +15,7 @@ export const ProjectGrid = () => {
     error
   } = useAllProjects();
   if (connectionLoading || loading) {
-    return <section className="py-16 bg-background">
+    return <section className="py-6 bg-background">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -24,7 +24,7 @@ export const ProjectGrid = () => {
       </section>;
   }
   if (connectionError || error) {
-    return <section className="py-16 bg-background">
+    return <section className="py-6 bg-background">
         <div className="container mx-auto px-4">
           <Card>
             <CardContent className="py-8 text-center space-y-4">
@@ -43,9 +43,9 @@ export const ProjectGrid = () => {
         </div>
       </section>;
   }
-  return <section className="py-16 bg-background">
+  return <section className="py-6 bg-background">
       <div className="container mx-auto px-4">
-        <div className="text-center mb-12">
+        <div className="text-center mb-6">
           
           
         </div>
