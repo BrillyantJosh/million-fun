@@ -1,13 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, ArrowLeft, Loader2, Edit } from "lucide-react";
+import { Plus, ArrowLeft, Loader2, Edit, Ban } from "lucide-react";
 import { useUserProjects } from "@/hooks/useUserProjects";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import type { NostrProject } from "@/hooks/useUserProjects";
+import { SimplePool, Filter } from "nostr-tools";
+import type { LanaSystemParameters } from "@/types/nostr";
 
 const MyProjects = () => {
   const navigate = useNavigate();
@@ -15,6 +17,7 @@ const MyProjects = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<NostrProject | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [visibilityStatus, setVisibilityStatus] = useState<Map<string, 'visible' | 'blocked'>>(new Map());
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
@@ -31,6 +34,53 @@ const MyProjects = () => {
     setEditDialogOpen(false);
     setSelectedProject(null);
   };
+
+  // Fetch visibility status for all projects
+  useEffect(() => {
+    if (projects.length === 0) return;
+
+    const fetchVisibilityStatus = async () => {
+      try {
+        const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+        if (!systemParamsStr) return;
+
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const relays = systemParams.relays;
+
+        const AUTHORITY_PUBKEY = "18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e";
+        const pool = new SimplePool();
+        const filter: Filter = {
+          kinds: [31235],
+          authors: [AUTHORITY_PUBKEY],
+        };
+
+        const visibilityEvents = await pool.querySync(relays, filter);
+        pool.close(relays);
+
+        const statusMap = new Map<string, 'visible' | 'blocked'>();
+        for (const event of visibilityEvents) {
+          const dTag = event.tags.find(t => t[0] === "d")?.[1];
+          const statusTag = event.tags.find(t => t[0] === "status")?.[1];
+          
+          if (dTag && statusTag) {
+            const projectId = dTag.replace("project:", "");
+            const existing = statusMap.get(projectId);
+            
+            if (!existing) {
+              statusMap.set(projectId, statusTag as 'visible' | 'blocked');
+            }
+          }
+        }
+
+        setVisibilityStatus(statusMap);
+      } catch (err) {
+        console.error("Error fetching visibility status:", err);
+      }
+    };
+
+    fetchVisibilityStatus();
+  }, [projects]);
 
   return (
     <div className="min-h-screen flex flex-col pb-16">
@@ -100,10 +150,16 @@ const MyProjects = () => {
                     alt={project.title}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex gap-2">
                     <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
                       {project.currency}
                     </span>
+                    {visibilityStatus.get(project.id) === 'blocked' && (
+                      <span className="bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1.5">
+                        <Ban className="h-3.5 w-3.5" />
+                        Deactivated by Admin
+                      </span>
+                    )}
                   </div>
                   <div className="absolute top-3 right-3">
                     <Button
