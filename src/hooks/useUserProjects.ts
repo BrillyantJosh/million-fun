@@ -3,6 +3,7 @@ import { SimplePool } from "nostr-tools/pool";
 import { getUserSession } from "@/lib/auth";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { Project } from "@/types/project";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface NostrProject {
   id: string;
@@ -20,6 +21,7 @@ export interface NostrProject {
   createdAt: number;
   responsibilityStatement?: string;
   participants?: string[]; // Array of participant pubkeys
+  restricted?: boolean;
 }
 
 export const useUserProjects = () => {
@@ -164,6 +166,29 @@ export const useUserProjects = () => {
                 participants: getAllTags("p", "participant")
               };
             });
+
+          // Fetch restricted status from database
+          const eventIds = parsedProjects.map(p => p.eventId);
+          if (eventIds.length > 0) {
+            try {
+              const { data: restrictedData, error: restrictedError } = await supabase
+                .from("projects")
+                .select("nostr_event_id, restricted")
+                .in("nostr_event_id", eventIds);
+
+              if (!restrictedError && restrictedData) {
+                const restrictedMap = new Map(
+                  restrictedData.map(item => [item.nostr_event_id, item.restricted])
+                );
+
+                parsedProjects.forEach(project => {
+                  project.restricted = restrictedMap.get(project.eventId) || false;
+                });
+              }
+            } catch (err) {
+              console.error("Error fetching restricted status:", err);
+            }
+          }
 
           console.log('💰 Parsed projects:', parsedProjects);
           setProjects(parsedProjects);
