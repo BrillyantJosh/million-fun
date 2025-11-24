@@ -314,22 +314,28 @@ const CreateProject = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="projectType">Project Type *</Label>
-                  <Select
-                    value={projectType}
-                    onValueChange={(value: "financing_inspirations" | "enhancing_current_system") => setProjectType(value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select project type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="financing_inspirations">Financing Inspirations</SelectItem>
-                      <SelectItem value="enhancing_current_system">Enhancing Current System</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {settings && (
-                    <p className="text-sm text-muted-foreground">
-                      Maximum funding amount: {settings[projectType].toLocaleString()} {formData.currency}
-                    </p>
+                  {settings ? (
+                    <>
+                      <Select
+                        value={projectType}
+                        onValueChange={(value: "financing_inspirations" | "enhancing_current_system") => setProjectType(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select project type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="financing_inspirations">Financing Inspirations</SelectItem>
+                          <SelectItem value="enhancing_current_system">Enhancing Current System</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">
+                        Maximum funding amount: {settings[projectType].toLocaleString()} {formData.currency}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Loading project limits...
+                    </div>
                   )}
                 </div>
 
