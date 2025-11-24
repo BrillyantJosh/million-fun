@@ -42,44 +42,147 @@ export const EditProjectDialog = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [participants, setParticipants] = useState<Array<{ pubkey: string; profile: NostrProfile }>>([]);
+  const [loadingProject, setLoadingProject] = useState(false);
+  const [freshProject, setFreshProject] = useState<NostrProject | null>(null);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
   const { data: settings } = useAppSettings();
 
+  // Use fresh project data if available, otherwise use prop
+  const currentProject = freshProject || project;
+
   const [formData, setFormData] = useState<ProjectData>({
-    title: project.title,
-    shortDesc: project.shortDesc,
-    longDesc: project.longDesc,
-    fiatGoal: project.fiatGoal,
-    currency: project.currency,
-    walletId: project.walletId,
+    title: currentProject.title,
+    shortDesc: currentProject.shortDesc,
+    longDesc: currentProject.longDesc,
+    fiatGoal: currentProject.fiatGoal,
+    currency: currentProject.currency,
+    walletId: currentProject.walletId,
     responsibilityStatement: responsibilityStatement,
-    projectType: project.projectType || "Inspiration",
-    videoUrl: project.videoUrl || "",
-    images: project.galleryImages || [],
-    coverImage: project.coverImage || ""
+    projectType: currentProject.projectType || "Inspiration",
+    videoUrl: currentProject.videoUrl || "",
+    images: currentProject.galleryImages || [],
+    coverImage: currentProject.coverImage || ""
   });
 
+  // Fetch fresh project data from relays when dialog opens
   useEffect(() => {
-    setImages(project.galleryImages || []);
-    setCoverImage(project.coverImage || "");
+    if (!open) return;
+
+    const fetchFreshProjectData = async () => {
+      setLoadingProject(true);
+      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      if (!systemParamsStr) {
+        console.warn('No system parameters found');
+        setLoadingProject(false);
+        return;
+      }
+
+      try {
+        const raw = JSON.parse(systemParamsStr);
+        const systemParams: LanaSystemParameters = raw.parameters ?? raw;
+        const relays = systemParams.relays;
+
+        if (!relays || relays.length === 0) {
+          console.warn('No relays configured');
+          setLoadingProject(false);
+          return;
+        }
+
+        const { SimplePool } = await import('nostr-tools/pool');
+        const pool = new SimplePool();
+
+        const dTag = `project:${project.id}`;
+        console.log('🔄 Fetching fresh project data:', dTag);
+
+        // Fetch from all relays
+        const events = await pool.querySync(relays, {
+          kinds: [31234],
+          "#d": [dTag],
+          limit: 1
+        });
+
+        pool.close(relays);
+
+        if (events.length === 0) {
+          console.warn('No project found on relays');
+          setLoadingProject(false);
+          return;
+        }
+
+        // Get most recent event
+        const latestEvent = events.sort((a, b) => b.created_at - a.created_at)[0];
+
+        // Parse project from event
+        const getTag = (name: string) => {
+          const tag = latestEvent.tags.find((t: string[]) => t[0] === name);
+          return tag ? tag[1] : undefined;
+        };
+
+        const getAllTags = (name: string, type?: string) => {
+          return latestEvent.tags
+            .filter((t: string[]) => t[0] === name && (!type || t[2] === type))
+            .map((t: string[]) => t[1]);
+        };
+
+        const coverImages = latestEvent.tags.filter(
+          (t: string[]) => t[0] === "img" && t[2] === "cover"
+        );
+        const galleryImages = getAllTags("img", "gallery");
+        const participantPubkeys = getAllTags("p", "participant");
+
+        const updatedProject: NostrProject = {
+          id: project.id,
+          eventId: latestEvent.id,
+          title: getTag("title") || "Untitled Project",
+          shortDesc: getTag("short_desc") || "",
+          longDesc: latestEvent.content || "",
+          fiatGoal: getTag("fiat_goal") || "0",
+          currency: getTag("currency") || "EUR",
+          walletId: getTag("wallet") || "",
+          coverImage: coverImages.length > 0 ? coverImages[0][1] : undefined,
+          galleryImages,
+          videoUrl: getTag("video"),
+          owner: project.owner,
+          createdAt: latestEvent.created_at,
+          responsibilityStatement: getTag("responsibility_statement"),
+          participants: participantPubkeys,
+          projectType: getTag("project_type")
+        };
+
+        console.log('✅ Fresh project data fetched:', updatedProject);
+        setFreshProject(updatedProject);
+      } catch (err) {
+        console.error('Error fetching fresh project:', err);
+      } finally {
+        setLoadingProject(false);
+      }
+    };
+
+    fetchFreshProjectData();
+  }, [open, project.id, project.owner]);
+
+  // Update form when fresh project data arrives
+  useEffect(() => {
+    setImages(currentProject.galleryImages || []);
+    setCoverImage(currentProject.coverImage || "");
     setFormData({
-      title: project.title,
-      shortDesc: project.shortDesc,
-      longDesc: project.longDesc,
-      fiatGoal: project.fiatGoal,
-      currency: project.currency,
-      walletId: project.walletId,
+      title: currentProject.title,
+      shortDesc: currentProject.shortDesc,
+      longDesc: currentProject.longDesc,
+      fiatGoal: currentProject.fiatGoal,
+      currency: currentProject.currency,
+      walletId: currentProject.walletId,
       responsibilityStatement: responsibilityStatement,
-      projectType: project.projectType || "Inspiration",
-      videoUrl: project.videoUrl || "",
-      images: project.galleryImages || [],
-      coverImage: project.coverImage || ""
+      projectType: currentProject.projectType || "Inspiration",
+      videoUrl: currentProject.videoUrl || "",
+      images: currentProject.galleryImages || [],
+      coverImage: currentProject.coverImage || ""
     });
     
     // Load participant profiles from Nostr
     const fetchParticipantProfiles = async () => {
-      if (!project.participants || project.participants.length === 0) {
+      if (!currentProject.participants || currentProject.participants.length === 0) {
         setParticipants([]);
         return;
       }
@@ -108,7 +211,7 @@ export const EditProjectDialog = ({
         // Fetch profiles for all participants
         const profileEvents = await pool.querySync(relays, {
           kinds: [0],
-          authors: project.participants
+          authors: currentProject.participants
         });
 
         pool.close(relays);
@@ -125,7 +228,7 @@ export const EditProjectDialog = ({
         }
 
         // Create participants array with profiles
-        const participantsWithProfiles = project.participants
+        const participantsWithProfiles = currentProject.participants
           .map(pubkey => {
             const profile = profileMap.get(pubkey);
             return profile ? { pubkey, profile } : null;
@@ -140,7 +243,7 @@ export const EditProjectDialog = ({
     };
 
     fetchParticipantProfiles();
-  }, [project, responsibilityStatement]);
+  }, [currentProject, responsibilityStatement]);
 
   useEffect(() => {
     const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
