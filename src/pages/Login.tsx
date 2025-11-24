@@ -141,7 +141,7 @@ const Login = () => {
             <div className="flex items-center gap-2">
               <Coins className="h-10 w-10 text-primary" />
               <span className="text-3xl font-bold text-foreground">
-                100MillionFun<span className="text-primary">Fund</span>
+                100MillionFund<span className="text-primary">Fund</span>
               </span>
             </div>
           </div>
