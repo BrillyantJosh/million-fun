@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { SimplePool } from "nostr-tools/pool";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -198,7 +197,6 @@ const ProjectDetail = () => {
         <main className="flex-1 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
-        <Footer />
         <BottomNav />
       </div>
     );
@@ -228,7 +226,6 @@ const ProjectDetail = () => {
             </CardContent>
           </Card>
         </main>
-        <Footer />
         <BottomNav />
       </div>
     );
@@ -422,7 +419,6 @@ const ProjectDetail = () => {
           </div>
         </div>
       </main>
-      <Footer />
       <BottomNav />
       
       {project && (

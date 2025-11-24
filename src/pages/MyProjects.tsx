@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -118,7 +117,6 @@ const MyProjects = () => {
           </div>
         )}
       </main>
-      <Footer />
       <BottomNav />
     </div>
   );
