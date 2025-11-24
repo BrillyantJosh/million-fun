@@ -7,20 +7,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProjectGrid } from "@/components/ProjectGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield } from "lucide-react";
-
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { isAdmin, isLoading } = useIsAdmin();
-
+  const {
+    isAdmin,
+    isLoading
+  } = useIsAdmin();
   useEffect(() => {
     if (!isLoading && !isAdmin) {
       navigate("/dashboard");
     }
   }, [isAdmin, isLoading, navigate]);
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+    return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
         <Header />
         <main className="container mx-auto px-4 py-8 mt-20 mb-20">
           <div className="space-y-4">
@@ -29,16 +28,12 @@ const AdminDashboard = () => {
           </div>
         </main>
         <BottomNav />
-      </div>
-    );
+      </div>;
   }
-
   if (!isAdmin) {
     return null;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
+  return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <Header />
       <main className="container mx-auto px-4 py-8 mt-20 mb-20">
         <div className="mb-8">
@@ -46,21 +41,17 @@ const AdminDashboard = () => {
             <Shield className="w-8 h-8 text-primary" />
             <h1 className="text-4xl font-bold text-foreground">Admin Dashboard</h1>
           </div>
-          <p className="text-muted-foreground">Pregled vseh aktivnih projektov</p>
+          
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Vsi aktivni projekti</CardTitle>
-          </CardHeader>
+          
           <CardContent>
             <ProjectGrid />
           </CardContent>
         </Card>
       </main>
       <BottomNav />
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
