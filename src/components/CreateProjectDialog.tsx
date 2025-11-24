@@ -411,13 +411,18 @@ export const CreateProjectDialog = ({ open, onOpenChange }: CreateProjectDialogP
                 try {
                   const cached = sessionStorage.getItem('lana_system_parameters');
                   if (cached) {
-                    const { relayStatuses } = JSON.parse(cached);
-                    return relayStatuses
+                    const parsed = JSON.parse(cached);
+                    const relayStatuses = parsed.relayStatuses || [];
+                    const connectedRelays = relayStatuses
                       .filter((r: any) => r.connected)
                       .map((r: any) => r.url);
+                    console.log('📡 Create Dialog - Connected relays:', connectedRelays);
+                    return connectedRelays;
                   }
+                  console.error('❌ No system parameters in session');
                   return [];
-                } catch {
+                } catch (err) {
+                  console.error('❌ Error parsing system parameters:', err);
                   return [];
                 }
               })()}
