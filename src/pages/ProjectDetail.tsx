@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit, Users, DollarSign, ExternalLink } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit, Users, DollarSign, ExternalLink, Clock } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { getUserSession } from "@/lib/auth";
@@ -295,7 +296,13 @@ const ProjectDetail = () => {
 
         {/* Title and Short Description */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-4">{project.title}</h1>
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <h1 className="text-4xl font-bold text-foreground">{project.title}</h1>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground shrink-0">
+              <Clock className="h-4 w-4" />
+              <span>Updated {new Date(project.createdAt * 1000).toLocaleDateString()}</span>
+            </div>
+          </div>
           <p className="text-xl text-muted-foreground">{project.shortDesc}</p>
         </div>
 
@@ -366,14 +373,32 @@ const ProjectDetail = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <a
-                    href={project.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline flex items-center gap-2"
-                  >
-                    Watch on YouTube →
-                  </a>
+                  {(() => {
+                    const videoId = project.videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([^&?/]+)/)?.[1];
+                    return videoId ? (
+                      <div className="aspect-video w-full">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          src={`https://www.youtube.com/embed/${videoId}`}
+                          title="Project Video"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="rounded-lg"
+                        />
+                      </div>
+                    ) : (
+                      <a
+                        href={project.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline flex items-center gap-2"
+                      >
+                        Watch Video →
+                      </a>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             )}
@@ -429,70 +454,6 @@ const ProjectDetail = () => {
               </Card>
             )}
 
-            {/* Donations List */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Donations Received
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {donationsLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : donations.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No donations yet</p>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Total Raised</p>
-                        <p className="text-xl font-bold text-primary">
-                          {donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0).toFixed(2)} {donations[0]?.currency || project.currency}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Backers</p>
-                        <p className="text-xl font-bold text-foreground">{new Set(donations.map(d => d.supporter)).size}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {donations.map((donation) => (
-                        <div key={donation.id} className="p-4 border rounded-lg">
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">
-                                {donation.supporterName || `${donation.supporter.slice(0, 16)}...`}
-                              </p>
-                              {donation.message && (
-                                <p className="text-xs text-muted-foreground italic mt-1">"{donation.message}"</p>
-                              )}
-                            </div>
-                            <p className="font-bold text-primary">{parseFloat(donation.amountFiat).toFixed(2)} {donation.currency}</p>
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{new Date(donation.timestampPaid * 1000).toLocaleDateString()}</span>
-                            {donation.tx && (
-                              <a
-                                href={`https://chainz.cryptoid.info/lana/tx.dws?${donation.tx}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-primary hover:underline flex items-center gap-1"
-                              >
-                                View TX <ExternalLink className="h-3 w-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Sidebar */}
@@ -504,42 +465,45 @@ const ProjectDetail = () => {
                   Funding Goal
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold text-foreground">
-                  {parseFloat(project.fiatGoal).toLocaleString()} {project.currency}
-                </div>
+              <CardContent className="space-y-4">
+                {(() => {
+                  const totalRaised = donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0);
+                  const goal = parseFloat(project.fiatGoal);
+                  const percentage = goal > 0 ? Math.min((totalRaised / goal) * 100, 100) : 0;
+                  
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-2xl font-bold text-primary">
+                            {totalRaised.toFixed(2)} {project.currency}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            of {goal.toLocaleString()} {project.currency}
+                          </span>
+                        </div>
+                        <Progress value={percentage} className="h-3" />
+                        <p className="text-xs text-muted-foreground text-right">
+                          {percentage.toFixed(1)}% funded
+                        </p>
+                      </div>
+                      
+                      <Separator />
+                      
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-2 flex items-center gap-2">
+                          <Wallet className="h-4 w-4" />
+                          Project Wallet
+                        </p>
+                        <p className="text-xs font-mono break-all text-foreground bg-muted p-2 rounded">
+                          {project.walletId}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Wallet className="h-5 w-5" />
-                  Project Wallet
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs font-mono break-all text-muted-foreground">
-                  {project.walletId}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
-                  Created
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {new Date(project.createdAt * 1000).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Separator />
 
             <Button 
               className="w-full" 
@@ -550,6 +514,71 @@ const ProjectDetail = () => {
             </Button>
           </div>
         </div>
+
+        {/* Donations List - moved to bottom */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Donations Received
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {donationsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : donations.length === 0 ? (
+              <p className="text-muted-foreground text-center py-8">No donations yet</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Raised</p>
+                    <p className="text-xl font-bold text-primary">
+                      {donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0).toFixed(2)} {donations[0]?.currency || project.currency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Backers</p>
+                    <p className="text-xl font-bold text-foreground">{new Set(donations.map(d => d.supporter)).size}</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {donations.map((donation) => (
+                    <div key={donation.id} className="p-4 border rounded-lg">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">
+                            {donation.supporterName || `${donation.supporter.slice(0, 16)}...`}
+                          </p>
+                          {donation.message && (
+                            <p className="text-xs text-muted-foreground italic mt-1">"{donation.message}"</p>
+                          )}
+                        </div>
+                        <p className="font-bold text-primary">{parseFloat(donation.amountFiat).toFixed(2)} {donation.currency}</p>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{new Date(donation.timestampPaid * 1000).toLocaleDateString()}</span>
+                        {donation.tx && (
+                          <a
+                            href={`https://chainz.cryptoid.info/lana/tx.dws?${donation.tx}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline flex items-center gap-1"
+                          >
+                            View TX <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
       <BottomNav />
       
