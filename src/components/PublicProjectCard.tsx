@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Heart, Users, User } from "lucide-react";
+import { Heart, Users, User, CheckCircle2 } from "lucide-react";
 import { NostrProject } from "@/hooks/useAllProjects";
 import { useProjectSupports } from "@/hooks/useProjectSupports";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
 interface PublicProjectCardProps {
   project: NostrProject;
@@ -19,6 +20,7 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
   const raisedAmount = stats?.totalRaised || 0;
   const percentage = goalAmount > 0 ? Math.min((raisedAmount / goalAmount) * 100, 100) : 0;
   const backersCount = stats?.backersCount || 0;
+  const isGoalReached = raisedAmount >= goalAmount;
 
   const handleDonate = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,10 +43,16 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 flex gap-2">
           <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium shadow-lg">
             {project.currency}
           </span>
+          {isGoalReached && (
+            <Badge className="bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Goal Reached
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -109,9 +117,10 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
           onClick={handleDonate}
           className="w-full gap-2 mt-4"
           size="lg"
+          disabled={isGoalReached}
         >
           <Heart className="h-4 w-4" />
-          Support Project
+          {isGoalReached ? 'Goal Reached - Donations Closed' : 'Support Project'}
         </Button>
       </CardContent>
     </Card>

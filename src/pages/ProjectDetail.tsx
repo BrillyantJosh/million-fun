@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit, Users, DollarSign, ExternalLink, Clock } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit, Users, DollarSign, ExternalLink, Clock, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
@@ -498,6 +498,7 @@ const ProjectDetail = () => {
                   const totalRaised = donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0);
                   const goal = parseFloat(project.fiatGoal);
                   const percentage = goal > 0 ? Math.min((totalRaised / goal) * 100, 100) : 0;
+                  const isGoalReached = totalRaised >= goal;
                   
                   return (
                     <>
@@ -514,6 +515,19 @@ const ProjectDetail = () => {
                         <p className="text-xs text-muted-foreground text-right">
                           {percentage.toFixed(1)}% funded
                         </p>
+                        {isGoalReached && (
+                          <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg mt-3">
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            <div>
+                              <p className="text-sm font-semibold text-green-700 dark:text-green-400">
+                                Funding Goal Reached!
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                This project has reached its funding goal. Donations are now closed.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       
                       <Separator />
@@ -537,8 +551,17 @@ const ProjectDetail = () => {
               className="w-full" 
               size="lg"
               onClick={() => navigate(`/donate/${projectId}`)}
+              disabled={(() => {
+                const totalRaised = donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0);
+                const goal = parseFloat(project.fiatGoal);
+                return totalRaised >= goal;
+              })()}
             >
-              Donate with LANA
+              {(() => {
+                const totalRaised = donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0);
+                const goal = parseFloat(project.fiatGoal);
+                return totalRaised >= goal ? 'Goal Reached - Donations Closed' : 'Donate with LANA';
+              })()}
             </Button>
           </div>
         </div>

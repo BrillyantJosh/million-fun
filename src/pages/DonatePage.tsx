@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
 import { ArrowLeft, Loader2, AlertCircle, CheckCircle2, Camera, X } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
+import { useProjectDonations } from "@/hooks/useProjectDonations";
 import type { LanaSystemParameters } from "@/types/nostr";
 import { SimplePool, type Filter } from "nostr-tools";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +33,7 @@ const DonatePage = () => {
   } | null>(null);
 
   const { wallets, loading: walletsLoading } = useUserWallets();
+  const { donations, loading: donationsLoading } = useProjectDonations(projectId);
 
   const [donationAmount, setDonationAmount] = useState("");
   const [selectedWalletId, setSelectedWalletId] = useState("");
@@ -123,6 +125,23 @@ const DonatePage = () => {
 
     fetchProjectData();
   }, [projectId, navigate]);
+
+  // Check if goal is reached and prevent donations
+  useEffect(() => {
+    if (!donationsLoading && projectData && donations) {
+      const totalRaised = donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0);
+      const goal = parseFloat(projectData.fiatGoal);
+      
+      if (totalRaised >= goal) {
+        toast({
+          title: "Goal Reached",
+          description: "This project has reached its funding goal. Donations are now closed.",
+          variant: "default"
+        });
+        navigate(`/project/${projectId}`);
+      }
+    }
+  }, [donationsLoading, projectData, donations, projectId, navigate]);
 
   // Load FX rate from session
   useEffect(() => {
