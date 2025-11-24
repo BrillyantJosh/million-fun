@@ -1,6 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
@@ -39,7 +38,6 @@ export default function DonationResult() {
             </CardContent>
           </Card>
         </main>
-        <Footer />
       </div>
     );
   }
@@ -161,7 +159,6 @@ export default function DonationResult() {
           </div>
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,7 +29,6 @@ const MyDonations = () => {
         <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </main>
-        <Footer />
         <BottomNav />
       </div>
     );
@@ -47,7 +45,6 @@ const MyDonations = () => {
             </CardContent>
           </Card>
         </main>
-        <Footer />
         <BottomNav />
       </div>
     );
@@ -164,7 +161,6 @@ const MyDonations = () => {
           </div>
         )}
       </main>
-      <Footer />
       <BottomNav />
     </div>
   );
