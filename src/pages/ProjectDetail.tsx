@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit } from "lucide-react";
+import { ArrowLeft, Loader2, Wallet, Target, Calendar, Video, User, Shield, Edit, Users, DollarSign, ExternalLink } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { EditProjectDialog } from "@/components/EditProjectDialog";
 import { getUserSession } from "@/lib/auth";
+import { useProjectDonations } from "@/hooks/useProjectDonations";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
 import type { NostrProfile } from "@/types/nostrProfile";
@@ -20,12 +21,14 @@ const ProjectDetail = () => {
   const navigate = useNavigate();
   const [project, setProject] = useState<NostrProject | null>(null);
   const [ownerProfile, setOwnerProfile] = useState<NostrProfile | null>(null);
+  const [participants, setParticipants] = useState<Array<{ pubkey: string; profile: NostrProfile }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [responsibilityStatement, setResponsibilityStatement] = useState<string>("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { donations, loading: donationsLoading } = useProjectDonations(projectId);
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -114,6 +117,9 @@ const ProjectDetail = () => {
           const ownerTag = event.tags.find(
             (t: string[]) => t[0] === "p" && t[2] === "owner"
           );
+          const participantTags = event.tags.filter(
+            (t: string[]) => t[0] === "p" && t[2] === "participant"
+          );
 
           const parsedProject: NostrProject = {
             id: projectId,
@@ -135,8 +141,10 @@ const ProjectDetail = () => {
           setResponsibilityStatement(respStatement);
           setProject(parsedProject);
 
-          // Fetch owner profile (KIND 0)
-          if (parsedProject.owner) {
+          // Fetch owner and participant profiles (KIND 0)
+          const profilePubkeys = [parsedProject.owner, ...participantTags.map(t => t[1])].filter(Boolean);
+          
+          if (profilePubkeys.length > 0) {
             try {
               const profilePromises = relays.map(async (relay) => {
                 return new Promise<any[]>((resolve) => {
@@ -144,8 +152,7 @@ const ProjectDetail = () => {
                   
                   pool.querySync([relay], {
                     kinds: [0],
-                    authors: [parsedProject.owner],
-                    limit: 1
+                    authors: profilePubkeys,
                   }).then((events) => {
                     clearTimeout(timeout);
                     resolve(events);
@@ -159,13 +166,43 @@ const ProjectDetail = () => {
               const profileResults = await Promise.all(profilePromises);
               const profileEvents = profileResults.flat();
               
-              if (profileEvents.length > 0) {
-                const latestProfile = profileEvents.sort((a, b) => b.created_at - a.created_at)[0];
-                const profileData = JSON.parse(latestProfile.content);
+              // Deduplicate profiles
+              const profileMap = new Map<string, any>();
+              for (const event of profileEvents) {
+                const existing = profileMap.get(event.pubkey);
+                if (!existing || event.created_at > existing.created_at) {
+                  profileMap.set(event.pubkey, event);
+                }
+              }
+              
+              // Set owner profile
+              const ownerEvent = profileMap.get(parsedProject.owner);
+              if (ownerEvent) {
+                const profileData = JSON.parse(ownerEvent.content);
                 setOwnerProfile(profileData);
               }
+              
+              // Set participant profiles
+              const participantProfiles = participantTags
+                .map(tag => {
+                  const event = profileMap.get(tag[1]);
+                  if (event) {
+                    try {
+                      return {
+                        pubkey: tag[1],
+                        profile: JSON.parse(event.content)
+                      };
+                    } catch {
+                      return null;
+                    }
+                  }
+                  return null;
+                })
+                .filter(Boolean) as Array<{ pubkey: string; profile: NostrProfile }>;
+              
+              setParticipants(participantProfiles);
             } catch (err) {
-              console.error('Failed to fetch owner profile:', err);
+              console.error('Failed to fetch profiles:', err);
             }
           }
 
@@ -361,6 +398,101 @@ const ProjectDetail = () => {
                 </CardContent>
               </Card>
             )}
+
+            {/* Participants */}
+            {participants.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Project Participants
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {participants.map((participant) => (
+                      <div key={participant.pubkey} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={participant.profile.picture} alt={participant.profile.name} />
+                          <AvatarFallback>{participant.profile.name?.[0]?.toUpperCase() || "?"}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{participant.profile.display_name || participant.profile.name}</p>
+                          {participant.profile.location && (
+                            <p className="text-xs text-muted-foreground">📍 {participant.profile.location}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Donations List */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Donations Received
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {donationsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : donations.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No donations yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Total Raised</p>
+                        <p className="text-xl font-bold text-primary">
+                          {donations.reduce((sum, d) => sum + parseFloat(d.amountFiat), 0).toFixed(2)} {donations[0]?.currency || project.currency}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Backers</p>
+                        <p className="text-xl font-bold text-foreground">{new Set(donations.map(d => d.supporter)).size}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {donations.map((donation) => (
+                        <div key={donation.id} className="p-4 border rounded-lg">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">
+                                {donation.supporterName || `${donation.supporter.slice(0, 16)}...`}
+                              </p>
+                              {donation.message && (
+                                <p className="text-xs text-muted-foreground italic mt-1">"{donation.message}"</p>
+                              )}
+                            </div>
+                            <p className="font-bold text-primary">{parseFloat(donation.amountFiat).toFixed(2)} {donation.currency}</p>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{new Date(donation.timestampPaid * 1000).toLocaleDateString()}</span>
+                            {donation.tx && (
+                              <a
+                                href={`https://chainz.cryptoid.info/lana/tx.dws?${donation.tx}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary hover:underline flex items-center gap-1"
+                              >
+                                View TX <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           {/* Sidebar */}
