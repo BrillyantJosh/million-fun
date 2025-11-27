@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Users, Calendar } from "lucide-react";
+import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 
 interface ProjectCardProps {
   project: Project;
@@ -17,7 +18,7 @@ export const ProjectCard = ({ project, onDonate }: ProjectCardProps) => {
       <CardHeader className="p-0">
         <div className="relative h-48 overflow-hidden">
           <img
-            src={project.image}
+            src={getCacheBreakingImageUrl(project.image)}
             alt={project.title}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />

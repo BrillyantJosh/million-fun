@@ -16,6 +16,7 @@ import { useProjectDonations } from "@/hooks/useProjectDonations";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
 import type { NostrProfile } from "@/types/nostrProfile";
+import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 
 const ProjectDetail = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -282,7 +283,7 @@ const ProjectDetail = () => {
         {project.coverImage && (
           <div className="relative h-96 rounded-lg overflow-hidden mb-8">
             <img
-              src={project.coverImage}
+              src={getCacheBreakingImageUrl(project.coverImage)}
               alt={project.title}
               className="w-full h-full object-cover"
             />
@@ -414,7 +415,7 @@ const ProjectDetail = () => {
                     {project.galleryImages.map((img, idx) => (
                       <img
                         key={idx}
-                        src={img}
+                        src={getCacheBreakingImageUrl(img)}
                         alt={`Gallery ${idx + 1}`}
                         className="w-full h-48 object-cover rounded-lg"
                       />

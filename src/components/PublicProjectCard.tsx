@@ -7,6 +7,7 @@ import { useProjectSupports } from "@/hooks/useProjectSupports";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 
 interface PublicProjectCardProps {
   project: NostrProject;
@@ -38,7 +39,7 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
     >
       <div className="relative h-64 overflow-hidden">
         <img
-          src={project.coverImage || "/placeholder.svg"}
+          src={getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg"}
           alt={project.title}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
