@@ -10,6 +10,7 @@ import { EditProjectDialog } from "@/components/EditProjectDialog";
 import type { NostrProject } from "@/hooks/useUserProjects";
 import { SimplePool, Filter } from "nostr-tools";
 import type { LanaSystemParameters } from "@/types/nostr";
+import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 
 const MyProjects = () => {
   const navigate = useNavigate();
@@ -146,7 +147,7 @@ const MyProjects = () => {
               >
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={project.coverImage || "/placeholder.svg"}
+                    src={getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg"}
                     alt={project.title}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />

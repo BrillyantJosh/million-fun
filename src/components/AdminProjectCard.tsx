@@ -9,6 +9,7 @@ import { publishProjectVisibility } from "@/lib/blockProject";
 import { toast } from "@/hooks/use-toast";
 import type { LanaSystemParameters } from "@/types/nostr";
 import { SimplePool } from 'nostr-tools/pool';
+import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 
 interface AdminProjectCardProps {
   project: NostrProject;
@@ -168,7 +169,7 @@ export const AdminProjectCard = ({ project, onStatusChange, authorityNostrKey, a
         <div className="relative h-64">
           {project.coverImage ? (
             <img
-              src={project.coverImage}
+              src={getCacheBreakingImageUrl(project.coverImage)}
               alt={project.title}
               className="w-full h-full object-cover"
             />
