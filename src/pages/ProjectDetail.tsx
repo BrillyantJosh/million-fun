@@ -31,6 +31,8 @@ const ProjectDetail = () => {
   const [isOwner, setIsOwner] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const { donations, loading: donationsLoading } = useProjectDonations(projectId);
+  const [coverImageError, setCoverImageError] = useState(false);
+  const [galleryImageErrors, setGalleryImageErrors] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const fetchProjectDetail = async () => {
@@ -283,8 +285,9 @@ const ProjectDetail = () => {
         {project.coverImage && (
           <div className="relative h-96 rounded-lg overflow-hidden mb-8">
             <img
-              src={getCacheBreakingImageUrl(project.coverImage)}
+              src={coverImageError ? "/placeholder.svg" : getCacheBreakingImageUrl(project.coverImage)}
               alt={project.title}
+              onError={() => setCoverImageError(true)}
               className="w-full h-full object-cover"
             />
             <div className="absolute top-4 right-4">
@@ -415,8 +418,9 @@ const ProjectDetail = () => {
                     {project.galleryImages.map((img, idx) => (
                       <img
                         key={idx}
-                        src={getCacheBreakingImageUrl(img)}
+                        src={galleryImageErrors.has(idx) ? "/placeholder.svg" : getCacheBreakingImageUrl(img)}
                         alt={`Gallery ${idx + 1}`}
+                        onError={() => setGalleryImageErrors(prev => new Set(prev).add(idx))}
                         className="w-full h-48 object-cover rounded-lg"
                       />
                     ))}

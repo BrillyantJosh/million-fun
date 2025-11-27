@@ -4,6 +4,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress";
 import { Users, Calendar } from "lucide-react";
 import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
+import { useState } from "react";
 
 interface ProjectCardProps {
   project: Project;
@@ -12,14 +13,16 @@ interface ProjectCardProps {
 
 export const ProjectCard = ({ project, onDonate }: ProjectCardProps) => {
   const percentage = (project.raised / project.goal) * 100;
+  const [imageError, setImageError] = useState(false);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="p-0">
         <div className="relative h-48 overflow-hidden">
           <img
-            src={getCacheBreakingImageUrl(project.image)}
+            src={imageError ? "/placeholder.svg" : getCacheBreakingImageUrl(project.image)}
             alt={project.title}
+            onError={() => setImageError(true)}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
           <div className="absolute top-3 left-3">

@@ -19,6 +19,7 @@ const MyProjects = () => {
   const [selectedProject, setSelectedProject] = useState<NostrProject | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [visibilityStatus, setVisibilityStatus] = useState<Map<string, 'visible' | 'blocked'>>(new Map());
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
   const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
@@ -147,8 +148,9 @@ const MyProjects = () => {
               >
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg"}
+                    src={imageErrors.has(project.id) ? "/placeholder.svg" : getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg"}
                     alt={project.title}
+                    onError={() => setImageErrors(prev => new Set(prev).add(project.id))}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                   />
                   <div className="absolute top-3 left-3 flex gap-2">
