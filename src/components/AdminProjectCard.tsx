@@ -23,6 +23,7 @@ export const AdminProjectCard = ({ project, onStatusChange, authorityNostrKey, a
   const [isBlocking, setIsBlocking] = useState(false);
   const [isUnblocking, setIsUnblocking] = useState(false);
   const [visibilityStatus, setVisibilityStatus] = useState<'visible' | 'blocked' | 'loading'>('loading');
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     const fetchVisibilityStatus = async () => {
@@ -169,8 +170,9 @@ export const AdminProjectCard = ({ project, onStatusChange, authorityNostrKey, a
         <div className="relative h-64">
           {project.coverImage ? (
             <img
-              src={getCacheBreakingImageUrl(project.coverImage)}
+              src={imageError ? "/placeholder.svg" : getCacheBreakingImageUrl(project.coverImage)}
               alt={project.title}
+              onError={() => setImageError(true)}
               className="w-full h-full object-cover"
             />
           ) : (

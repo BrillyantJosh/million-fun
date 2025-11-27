@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
+import { useState } from "react";
 
 interface PublicProjectCardProps {
   project: NostrProject;
@@ -16,6 +17,7 @@ interface PublicProjectCardProps {
 export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
   const navigate = useNavigate();
   const { stats, loading } = useProjectSupports(project.id);
+  const [imageError, setImageError] = useState(false);
 
   const goalAmount = parseFloat(project.fiatGoal);
   const raisedAmount = stats?.totalRaised || 0;
@@ -39,8 +41,9 @@ export const PublicProjectCard = ({ project }: PublicProjectCardProps) => {
     >
       <div className="relative h-64 overflow-hidden">
         <img
-          src={getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg"}
+          src={imageError ? "/placeholder.svg" : (getCacheBreakingImageUrl(project.coverImage) || "/placeholder.svg")}
           alt={project.title}
+          onError={() => setImageError(true)}
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
