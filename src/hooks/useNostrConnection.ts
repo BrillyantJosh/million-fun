@@ -21,6 +21,8 @@ export const useNostrConnection = () => {
       const pool = new SimplePool();
       const statuses: RelayStatus[] = DEFAULT_RELAYS.map(url => ({ url, connected: false }));
       setRelayStatuses(statuses);
+      
+      let hasCachedData = false;
 
       try {
         // Check session storage first
@@ -30,6 +32,7 @@ export const useNostrConnection = () => {
           setParameters(data.parameters);
           setRelayStatuses(data.relayStatuses);
           setLoading(false);
+          hasCachedData = true;
         }
 
         // Fetch KIND 38888 event
@@ -122,7 +125,10 @@ export const useNostrConnection = () => {
 
       } catch (err) {
         console.error('Error fetching Nostr data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to connect to Nostr network');
+        // Only show error to user if we don't have cached data
+        if (!hasCachedData) {
+          setError(err instanceof Error ? err.message : 'Failed to connect to Nostr network');
+        }
       } finally {
         setLoading(false);
         pool.close(DEFAULT_RELAYS);
