@@ -27,7 +27,7 @@ export const Header = () => {
           <Link to={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2">
             <Coins className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold text-foreground">
-              100MillionFun<span className="text-primary">Fun</span>
+              100Million.<span className="text-green-500">Fun</span>
             </span>
           </Link>
 
