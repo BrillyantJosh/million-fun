@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SimplePool, type Event } from 'nostr-tools';
+import { SimplePool, type Event, type Filter } from 'nostr-tools';
 import type { LanaSystemParameters, RelayStatus } from '@/types/nostr';
 
 const AUTHORIZED_PUBKEY = '9eb71bf1e9c3189c78800e4c3831c1c1a93ab43b61118818c32e4490891a35b3';
@@ -9,6 +9,33 @@ const DEFAULT_RELAYS = [
 ];
 
 const SESSION_STORAGE_KEY = 'lana_system_parameters';
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
+const QUERY_TIMEOUT = 10000;
+
+const fetchWithRetry = async (
+  pool: SimplePool, 
+  relays: string[], 
+  filter: Filter, 
+  retries = MAX_RETRIES
+): Promise<Event[]> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const events = await Promise.race([
+        pool.querySync(relays, filter),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Query timeout')), QUERY_TIMEOUT)
+        )
+      ]);
+      return events;
+    } catch (err) {
+      console.log(`Nostr query attempt ${attempt}/${retries} failed:`, err);
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, INITIAL_RETRY_DELAY * attempt));
+    }
+  }
+  throw new Error('All retries failed');
+};
 
 export const useNostrConnection = () => {
   const [parameters, setParameters] = useState<LanaSystemParameters | null>(null);
@@ -35,8 +62,8 @@ export const useNostrConnection = () => {
           hasCachedData = true;
         }
 
-        // Fetch KIND 38888 event
-        const filter = {
+        // Fetch KIND 38888 event with retry
+        const filter: Filter = {
           kinds: [38888],
           authors: [AUTHORIZED_PUBKEY],
           '#d': ['main'],
@@ -46,7 +73,7 @@ export const useNostrConnection = () => {
         const startTimes = new Map<string, number>();
         DEFAULT_RELAYS.forEach(relay => startTimes.set(relay, Date.now()));
 
-        const events = await pool.querySync(DEFAULT_RELAYS, filter);
+        const events = await fetchWithRetry(pool, DEFAULT_RELAYS, filter);
         
         if (events.length === 0) {
           throw new Error('No KIND 38888 event found from authorized publisher');

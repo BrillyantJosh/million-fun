@@ -21,6 +21,18 @@ export interface NostrProject {
   projectType?: string;
 }
 
+const MAX_WAIT_ATTEMPTS = 10;
+const WAIT_INTERVAL = 500;
+
+const waitForSystemParams = async (): Promise<string | null> => {
+  for (let i = 0; i < MAX_WAIT_ATTEMPTS; i++) {
+    const params = sessionStorage.getItem("lana_system_parameters");
+    if (params) return params;
+    await new Promise(r => setTimeout(r, WAIT_INTERVAL));
+  }
+  return null;
+};
+
 export const useAllProjects = (includeBlocked = false) => {
   const [projects, setProjects] = useState<NostrProject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,7 +40,8 @@ export const useAllProjects = (includeBlocked = false) => {
 
   useEffect(() => {
     const fetchAllProjects = async () => {
-      const systemParamsStr = sessionStorage.getItem("lana_system_parameters");
+      // Wait for system parameters with retry
+      const systemParamsStr = await waitForSystemParams();
       if (!systemParamsStr) {
         setError("System parameters not found");
         setLoading(false);
@@ -226,4 +239,3 @@ export const useAllProjects = (includeBlocked = false) => {
 
   return { projects, loading, error };
 };
-
