@@ -1,5 +1,4 @@
 import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
 
 const HowItWorks = () => {
   return (
@@ -111,7 +110,7 @@ const HowItWorks = () => {
         </div>
       </main>
 
-      <Footer />
+      
     </div>
   );
 };

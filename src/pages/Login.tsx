@@ -140,8 +140,7 @@ const Login = () => {
           <div className="flex justify-center mb-4">
             <div className="flex items-center gap-2">
               <Coins className="h-10 w-10 text-primary" />
-              <span className="text-3xl font-bold text-foreground">100Million.Fun<span className="text-primary">Fun</span>
-              </span>
+              <span className="text-3xl font-bold text-foreground">100Million.<span className="text-primary">Fun</span></span>
             </div>
           </div>
           <CardTitle className="text-2xl">Sign In</CardTitle>
