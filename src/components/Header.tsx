@@ -32,14 +32,16 @@ export const Header = () => {
           </Link>
 
           {/* Navigation - only on landing page */}
-          {isLandingPage && !isAuthenticated && <nav className="hidden md:flex items-center gap-8">
+          <nav className="hidden md:flex items-center gap-8">
+            {isLandingPage && !isAuthenticated && (
               <a href="#projects" className="text-foreground hover:text-primary transition-colors font-medium">
                 Projects
               </a>
-              <a href="#how-it-works" className="text-foreground hover:text-primary transition-colors font-medium">
-                How it works
-              </a>
-            </nav>}
+            )}
+            <Link to="/how-it-works" className="text-foreground hover:text-primary transition-colors font-medium">
+              How it works
+            </Link>
+          </nav>
 
           <div className="flex items-center gap-4">
             <NostrDataDialog />
