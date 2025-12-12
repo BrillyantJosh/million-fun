@@ -4,6 +4,8 @@ import { getUserSession } from "@/lib/auth";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { Project } from "@/types/project";
 
+export type ProjectStatus = 'draft' | 'active';
+
 export interface NostrProject {
   id: string;
   eventId: string;
@@ -21,6 +23,7 @@ export interface NostrProject {
   responsibilityStatement?: string;
   participants?: string[]; // Array of participant pubkeys
   projectType?: string;
+  status?: ProjectStatus;
 }
 
 export const useUserProjects = () => {
@@ -163,7 +166,8 @@ export const useUserProjects = () => {
                 createdAt: event.created_at,
                 responsibilityStatement: getTag("responsibility_statement"),
                 participants: getAllTags("p", "participant"),
-                projectType: getTag("project_type")
+                projectType: getTag("project_type"),
+                status: (getTag("status") as ProjectStatus) || 'draft'
               };
             });
 
