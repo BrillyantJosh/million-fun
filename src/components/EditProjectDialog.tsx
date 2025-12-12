@@ -5,17 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { getUserSession } from "@/lib/auth";
-import { updateProjectOnNostr, ProjectData, PublishResult } from "@/lib/updateProject";
+import { updateProjectOnNostr, ProjectData, PublishResult, ProjectStatus } from "@/lib/updateProject";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProject } from "@/hooks/useUserProjects";
-import { Loader2, CheckCircle2, XCircle, Upload, Image as ImageIcon, X } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Upload, Image as ImageIcon, X, AlertCircle } from "lucide-react";
 import { useUserWallets } from "@/hooks/useUserWallets";
 import { uploadProjectImage } from "@/lib/uploadImage";
 import { ParticipantSelector } from "./ParticipantSelector";
 import type { NostrProfile } from "@/types/nostrProfile";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useProjectHasDonations } from "@/hooks/useProjectHasDonations";
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -47,9 +50,15 @@ export const EditProjectDialog = ({
 
   const { wallets, loading: walletsLoading } = useUserWallets();
   const { data: settings } = useAppSettings();
+  const { hasDonations, loading: donationsLoading } = useProjectHasDonations(project.id);
+  const [formStatus, setFormStatus] = useState<ProjectStatus>(project.status || 'draft');
 
   // Use fresh project data if available, otherwise use prop
   const currentProject = freshProject || project;
+  
+  // Determine if status is locked (has donations = permanently active)
+  const statusLocked = hasDonations;
+  const effectiveStatus: ProjectStatus = statusLocked ? 'active' : formStatus;
 
   const [formData, setFormData] = useState<ProjectData>({
     title: currentProject.title,
@@ -60,6 +69,7 @@ export const EditProjectDialog = ({
     walletId: currentProject.walletId,
     responsibilityStatement: responsibilityStatement,
     projectType: currentProject.projectType || "Inspiration",
+    status: currentProject.status || "draft",
     videoUrl: currentProject.videoUrl || "",
     images: currentProject.galleryImages || [],
     coverImage: currentProject.coverImage || ""
@@ -166,6 +176,7 @@ export const EditProjectDialog = ({
   useEffect(() => {
     setImages(currentProject.galleryImages || []);
     setCoverImage(currentProject.coverImage || "");
+    setFormStatus(currentProject.status || 'draft');
     setFormData({
       title: currentProject.title,
       shortDesc: currentProject.shortDesc,
@@ -175,6 +186,7 @@ export const EditProjectDialog = ({
       walletId: currentProject.walletId,
       responsibilityStatement: responsibilityStatement,
       projectType: currentProject.projectType || "Inspiration",
+      status: currentProject.status || "draft",
       videoUrl: currentProject.videoUrl || "",
       images: currentProject.galleryImages || [],
       coverImage: currentProject.coverImage || ""
@@ -378,12 +390,16 @@ export const EditProjectDialog = ({
     setPublishResults(null);
 
     try {
+      // Enforce status lock rule: if donations exist, status must be 'active'
+      const finalStatus: ProjectStatus = statusLocked ? 'active' : effectiveStatus;
+      
       const result = await updateProjectOnNostr(
         project.id,
         { 
           ...formData, 
           images, 
           coverImage,
+          status: finalStatus,
           participants: participants.map(p => p.pubkey)
         },
         session.privateKeyHex,
@@ -427,7 +443,12 @@ export const EditProjectDialog = ({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Project</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Edit Project</DialogTitle>
+            <Badge variant={effectiveStatus === 'active' ? 'default' : 'secondary'} className="ml-2">
+              {donationsLoading ? 'Loading...' : effectiveStatus === 'active' ? 'Active' : 'Draft'}
+            </Badge>
+          </div>
           <DialogDescription>
             Update project details. Changes will be published to all relays.
           </DialogDescription>
@@ -526,6 +547,47 @@ export const EditProjectDialog = ({
                 <p className="text-sm text-muted-foreground">
                   No funding limit for this project type
                 </p>
+              )}
+            </div>
+
+            {/* Project Status Section */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="status">Project Status *</Label>
+                <Badge variant={effectiveStatus === 'active' ? 'default' : 'secondary'}>
+                  {donationsLoading ? 'Loading...' : effectiveStatus === 'active' ? 'Active' : 'Draft'}
+                </Badge>
+              </div>
+              
+              {statusLocked ? (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    This project has already received donations and can no longer be set to draft. The status is permanently locked to active.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <Select
+                    value={formStatus}
+                    onValueChange={(value: ProjectStatus) => setFormStatus(value)}
+                    disabled={donationsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft (Not publicly listed)</SelectItem>
+                      <SelectItem value="active">Active (Publicly visible)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {formStatus === "draft" 
+                      ? "Draft projects are only visible to you and participants. They cannot receive donations."
+                      : "Active projects are publicly listed and can receive donations."
+                    }
+                  </p>
+                </>
               )}
             </div>
 

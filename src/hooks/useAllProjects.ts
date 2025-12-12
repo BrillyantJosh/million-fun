@@ -3,6 +3,8 @@ import { SimplePool, Filter } from "nostr-tools";
 import type { LanaSystemParameters } from "@/types/nostr";
 import type { NostrProfile } from "@/types/nostrProfile";
 
+export type ProjectStatus = 'draft' | 'active';
+
 export interface NostrProject {
   id: string;
   eventId: string;
@@ -19,6 +21,7 @@ export interface NostrProject {
   createdAt: number;
   responsibilityStatement?: string;
   projectType?: string;
+  status?: ProjectStatus;
 }
 
 const MAX_WAIT_ATTEMPTS = 10;
@@ -125,6 +128,7 @@ export const useAllProjects = (includeBlocked = false) => {
               createdAt: event.created_at,
               responsibilityStatement: getTag("responsibility_statement"),
               projectType: getTag("project_type"),
+              status: (getTag("status") as ProjectStatus) || 'draft',
             });
           } catch (err) {
             console.error("Error parsing project event:", err);
@@ -206,11 +210,16 @@ export const useAllProjects = (includeBlocked = false) => {
 
             // Filter out blocked projects
             filteredProjects = parsedProjects.filter(project => {
-              const status = visibilityMap.get(project.id);
+              const visibilityStatus = visibilityMap.get(project.id);
               // If no KIND 31235 exists, project is visible by default
               // Only hide if explicitly blocked
-              if (status === 'blocked') {
+              if (visibilityStatus === 'blocked') {
                 console.log(`🚫 Filtering out blocked project: ${project.id}`);
+                return false;
+              }
+              // Also filter out draft projects from public views
+              if (project.status === 'draft') {
+                console.log(`📝 Filtering out draft project: ${project.id}`);
                 return false;
               }
               return true;

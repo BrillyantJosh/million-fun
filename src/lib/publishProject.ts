@@ -10,6 +10,8 @@ function hexToBytes(h: string): Uint8Array {
   return a;
 }
 
+export type ProjectStatus = 'draft' | 'active';
+
 export interface ProjectData {
   title: string;
   shortDesc: string;
@@ -19,6 +21,7 @@ export interface ProjectData {
   walletId: string;
   responsibilityStatement: string;
   projectType: string;
+  status?: ProjectStatus;
   videoUrl?: string;
   images?: string[];
   coverImage?: string;
@@ -44,7 +47,9 @@ export async function publishProjectToNostr(
   // Clean fiat goal (remove thousands separator)
   const cleanFiatGoal = projectData.fiatGoal.replace(/,/g, '');
   
-  // Build tags array
+  // Build tags array - new projects default to draft
+  const status: ProjectStatus = projectData.status || 'draft';
+  
   const tags: string[][] = [
     ["d", `project:${projectUuid}`],
     ["service", "lanacrowd"],
@@ -55,6 +60,7 @@ export async function publishProjectToNostr(
     ["wallet", projectData.walletId],
     ["responsibility_statement", projectData.responsibilityStatement],
     ["project_type", projectData.projectType],
+    ["status", status],
     ["p", ownerNostrHex, "owner"],
     
     // Add participant tags

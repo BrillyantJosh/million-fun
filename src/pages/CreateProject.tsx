@@ -41,6 +41,7 @@ const CreateProject = () => {
     walletId: "",
     responsibilityStatement: "",
     projectType: "Inspiration",
+    status: "draft",
     videoUrl: "",
     images: []
   });
@@ -207,6 +208,7 @@ const CreateProject = () => {
         walletId: "",
         responsibilityStatement: "",
         projectType: "Inspiration",
+        status: "draft",
         videoUrl: "",
         images: []
       });
@@ -341,6 +343,28 @@ const CreateProject = () => {
                       No funding limit for this project type
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="status">Project Status *</Label>
+                  <Select
+                    value={formData.status || "draft"}
+                    onValueChange={(value: "draft" | "active") => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="draft">Draft (Not publicly listed)</SelectItem>
+                      <SelectItem value="active">Active (Publicly visible)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {formData.status === "draft" 
+                      ? "Draft projects are only visible to you and participants. They cannot receive donations."
+                      : "Active projects are publicly listed and can receive donations."
+                    }
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
