@@ -138,7 +138,9 @@ const ProjectDetail = () => {
             galleryImages,
             videoUrl: getTag("video"),
             owner: ownerTag ? ownerTag[1] : "",
-            createdAt: event.created_at
+            createdAt: event.created_at,
+            projectType: getTag("project_type"),
+            status: getTag("status") as 'draft' | 'active' | undefined
           };
 
           const respStatement = getTag("responsibility_statement") || "";
