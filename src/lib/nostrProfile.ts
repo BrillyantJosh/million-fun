@@ -2,34 +2,82 @@ import { SimplePool, type Event } from 'nostr-tools';
 import type { NostrProfile, NostrProfileTags } from '@/types/nostrProfile';
 
 const SESSION_STORAGE_KEY = 'lana_system_parameters';
+const DEFAULT_RELAYS = [
+  'wss://relay.lanacoin-eternity.com',
+  'wss://relay.lanaheartvoice.com'
+];
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY = 1000;
+const QUERY_TIMEOUT = 15000;
+
+const fetchProfileWithRetry = async (
+  pool: SimplePool,
+  relays: string[],
+  nostrHexId: string,
+  retries = MAX_RETRIES
+): Promise<Event[]> => {
+  const filter = {
+    kinds: [0],
+    authors: [nostrHexId],
+    limit: 1
+  };
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const events = await Promise.race([
+        pool.querySync(relays, filter),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Query timeout')), QUERY_TIMEOUT)
+        )
+      ]);
+      return events;
+    } catch (err) {
+      console.log(`Profile fetch attempt ${attempt}/${retries} failed:`, err);
+      if (attempt === retries) throw err;
+      await new Promise(r => setTimeout(r, INITIAL_RETRY_DELAY * attempt));
+    }
+  }
+  throw new Error('All retries failed');
+};
+
+const getRelays = (): string[] => {
+  // Try to get relays from session storage
+  const cached = sessionStorage.getItem(SESSION_STORAGE_KEY);
+  
+  if (cached) {
+    try {
+      const { relayStatuses } = JSON.parse(cached);
+      const connectedRelays = relayStatuses
+        .filter((r: any) => r.connected)
+        .map((r: any) => r.url);
+      
+      if (connectedRelays.length > 0) {
+        return connectedRelays;
+      }
+    } catch (e) {
+      console.warn('Failed to parse cached relay data:', e);
+    }
+  }
+  
+  // Fallback to default relays
+  console.log('Using default relays as fallback');
+  return DEFAULT_RELAYS;
+};
 
 export const fetchNostrProfile = async (nostrHexId: string): Promise<{ profile: NostrProfile; tags: NostrProfileTags } | null> => {
-  // Get relays from session storage
-  const cached = sessionStorage.getItem(SESSION_STORAGE_KEY);
-  if (!cached) {
-    throw new Error('No Nostr relays available. Please refresh the page.');
-  }
-
-  const { relayStatuses } = JSON.parse(cached);
-  const relays = relayStatuses
-    .filter((r: any) => r.connected)
-    .map((r: any) => r.url);
-
+  const relays = getRelays();
+  
   if (relays.length === 0) {
-    throw new Error('No connected relays available');
+    throw new Error('No relays available. Please check your connection.');
   }
+
+  console.log(`Fetching profile from ${relays.length} relays:`, relays);
 
   const pool = new SimplePool();
 
   try {
-    // Fetch KIND 0 events for this user
-    const filter = {
-      kinds: [0],
-      authors: [nostrHexId],
-      limit: 1
-    };
-
-    const events = await pool.querySync(relays, filter);
+    // Fetch KIND 0 events with retry logic
+    const events = await fetchProfileWithRetry(pool, relays, nostrHexId);
 
     if (events.length === 0) {
       return null; // No profile found
