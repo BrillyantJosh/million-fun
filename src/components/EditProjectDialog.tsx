@@ -680,7 +680,7 @@ export const EditProjectDialog = ({
               <Label htmlFor="coverImage">Cover Image *</Label>
               <p className="text-sm text-muted-foreground">
                 Main project image (displayed in lists and on project page).
-                <span className="block text-xs mt-1">Dovoljeni formati: JPEG, PNG, WebP. Maks. velikost: 15 MB. Slike se samodejno optimizirajo.</span>
+                <span className="block text-xs mt-1">Formats: JPEG, PNG, WebP. Max: 15 MB. Optimized to 1920×1080px.</span>
               </p>
               <div className="space-y-2">
                 {coverImage ? (
@@ -739,7 +739,7 @@ export const EditProjectDialog = ({
               <Label>Gallery Images (Optional)</Label>
               <p className="text-sm text-muted-foreground">
                 Additional images shown on the project page.
-                <span className="block text-xs mt-1">Dovoljeni formati: JPEG, PNG, WebP. Maks. velikost: 15 MB.</span>
+                <span className="block text-xs mt-1">Formats: JPEG, PNG, WebP. Max: 15 MB. Optimized to 1200×1200px.</span>
               </p>
               <div>
                 <input

@@ -114,13 +114,13 @@ export function validateImageFile(file: File, maxSizeMB: number = 15): boolean {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   
   if (!validTypes.includes(file.type)) {
-    throw new Error('Napačen format datoteke. Dovoljeni formati: JPEG, PNG, WebP.');
+    throw new Error('Invalid file type. Please upload JPEG, PNG, or WebP images.');
   }
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   if (file.size > maxSizeBytes) {
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
-    throw new Error(`Slika je prevelika (${fileSizeMB} MB). Maksimalna velikost je ${maxSizeMB} MB. Prosimo, zmanjšajte resolucijo slike ali uporabite orodje za kompresijo (npr. squoosh.app).`);
+    throw new Error(`Image too large (${fileSizeMB} MB). Maximum size is ${maxSizeMB} MB. Please reduce image resolution or use a compression tool (e.g., squoosh.app).`);
   }
 
   return true;
