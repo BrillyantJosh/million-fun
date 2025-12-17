@@ -110,16 +110,17 @@ export async function optimizeImage(
  * @param maxSizeMB - Maximum file size in MB (default: 5MB)
  * @returns true if valid, throws error otherwise
  */
-export function validateImageFile(file: File, maxSizeMB: number = 5): boolean {
+export function validateImageFile(file: File, maxSizeMB: number = 15): boolean {
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   
   if (!validTypes.includes(file.type)) {
-    throw new Error('Invalid file type. Please upload JPEG, PNG, or WebP images.');
+    throw new Error('Napačen format datoteke. Dovoljeni formati: JPEG, PNG, WebP.');
   }
 
   const maxSizeBytes = maxSizeMB * 1024 * 1024;
   if (file.size > maxSizeBytes) {
-    throw new Error(`File size too large. Maximum size is ${maxSizeMB}MB.`);
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(1);
+    throw new Error(`Slika je prevelika (${fileSizeMB} MB). Maksimalna velikost je ${maxSizeMB} MB. Prosimo, zmanjšajte resolucijo slike ali uporabite orodje za kompresijo (npr. squoosh.app).`);
   }
 
   return true;
