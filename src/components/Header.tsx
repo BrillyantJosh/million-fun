@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Coins, Menu, LogOut, Network } from "lucide-react";
+import { Coins, Menu, LogOut, Network, HelpCircle } from "lucide-react";
 import { NostrDataDialog } from "./NostrDataDialog";
 import { NostrNetworkStatus } from "./NostrNetworkStatus";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -43,7 +43,14 @@ export const Header = () => {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* How it Works - icon on mobile, hidden on desktop (shown in nav) */}
+            <Link to="/how-it-works" className="md:hidden">
+              <Button variant="ghost" size="icon" title="How it Works">
+                <HelpCircle className="h-5 w-5" />
+              </Button>
+            </Link>
+            
             <NostrDataDialog />
             
             <Dialog>
