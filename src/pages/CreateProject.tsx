@@ -462,7 +462,8 @@ const CreateProject = () => {
                 <div className="space-y-2">
                   <Label htmlFor="coverImage">Cover Image *</Label>
                   <p className="text-sm text-muted-foreground">
-                    Main project image (displayed in lists and on project page)
+                    Main project image (displayed in lists and on project page).
+                    <span className="block text-xs mt-1">Dovoljeni formati: JPEG, PNG, WebP. Maks. velikost: 15 MB. Slike se samodejno optimizirajo.</span>
                   </p>
                   <div className="space-y-2">
                     {coverImage ? (
@@ -520,7 +521,8 @@ const CreateProject = () => {
                 <div className="space-y-2">
                   <Label>Gallery Images (Optional)</Label>
                   <p className="text-sm text-muted-foreground">
-                    Additional images shown on the project page
+                    Additional images shown on the project page.
+                    <span className="block text-xs mt-1">Dovoljeni formati: JPEG, PNG, WebP. Maks. velikost: 15 MB.</span>
                   </p>
                   <div>
                     <input

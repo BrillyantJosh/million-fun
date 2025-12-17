@@ -19,8 +19,8 @@ export async function uploadProjectImage(
   imageType: 'cover' | 'gallery' = 'gallery'
 ): Promise<UploadImageResult> {
   try {
-    // Validate file
-    validateImageFile(file, 5);
+    // Validate file (15MB limit)
+    validateImageFile(file, 15);
 
     // Get user session
     const session = getUserSession();
