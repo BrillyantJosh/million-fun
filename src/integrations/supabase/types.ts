@@ -62,6 +62,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_project_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          nostr_hex_id: string
+          project_type: Database["public"]["Enums"]["project_type_role"]
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nostr_hex_id: string
+          project_type: Database["public"]["Enums"]["project_type_role"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nostr_hex_id?: string
+          project_type?: Database["public"]["Enums"]["project_type_role"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -70,7 +94,7 @@ export type Database = {
       is_admin: { Args: { check_nostr_hex_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      project_type_role: "enhancement" | "agreement" | "awareness"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -197,6 +221,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      project_type_role: ["enhancement", "agreement", "awareness"],
+    },
   },
 } as const

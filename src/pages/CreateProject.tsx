@@ -16,6 +16,7 @@ import { Loader2, CheckCircle2, XCircle, Plus, X, ArrowLeft, Upload, Image as Im
 import { useUserWallets } from "@/hooks/useUserWallets";
 import { uploadProjectImage } from "@/lib/uploadImage";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { useUserProjectPermissions } from "@/hooks/useUserProjectPermissions";
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ const CreateProject = () => {
 
   const { wallets, loading: walletsLoading } = useUserWallets();
   const { data: settings } = useAppSettings();
+  const { allowedTypes, isLoading: permissionsLoading } = useUserProjectPermissions();
 
   const [formData, setFormData] = useState<ProjectData>({
     title: "",
@@ -320,17 +322,24 @@ const CreateProject = () => {
                   <Select
                     value={formData.projectType}
                     onValueChange={(value) => setFormData({ ...formData, projectType: value })}
+                    disabled={permissionsLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select project type" />
+                      <SelectValue placeholder={permissionsLoading ? "Loading..." : "Select project type"} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Inspiration">Inspiration</SelectItem>
-                      <SelectItem value="Enhancement">Enhancement</SelectItem>
-                      <SelectItem value="Agreement">Agreement</SelectItem>
-                      <SelectItem value="Awareness">Awareness</SelectItem>
+                      {allowedTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {allowedTypes.length === 1 && (
+                    <p className="text-xs text-muted-foreground">
+                      Only "Inspiration" projects available. Contact admin for additional permissions.
+                    </p>
+                  )}
                   {settings && (formData.projectType === "Inspiration" || formData.projectType === "Enhancement") && (
                     <p className="text-sm text-muted-foreground">
                       Maximum funding amount: {(formData.projectType === "Inspiration" 
