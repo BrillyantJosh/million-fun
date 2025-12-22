@@ -19,6 +19,7 @@ import { ParticipantSelector } from "./ParticipantSelector";
 import type { NostrProfile } from "@/types/nostrProfile";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { useProjectHasDonations } from "@/hooks/useProjectHasDonations";
+import { useUserProjectPermissions } from "@/hooks/useUserProjectPermissions";
 
 interface EditProjectDialogProps {
   open: boolean;
@@ -51,6 +52,7 @@ export const EditProjectDialog = ({
   const { wallets, loading: walletsLoading } = useUserWallets();
   const { data: settings } = useAppSettings();
   const { hasDonations, loading: donationsLoading } = useProjectHasDonations(project.id);
+  const { allowedTypes, isLoading: permissionsLoading } = useUserProjectPermissions();
   const [formStatus, setFormStatus] = useState<ProjectStatus>(project.status || 'draft');
 
   // Use fresh project data if available, otherwise use prop
@@ -522,20 +524,32 @@ export const EditProjectDialog = ({
 
             <div className="space-y-2">
               <Label htmlFor="projectType">Project Type *</Label>
-              <Select
-                value={formData.projectType}
-                onValueChange={(value) => setFormData({ ...formData, projectType: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select project type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Inspiration">Inspiration</SelectItem>
-                  <SelectItem value="Enhancement">Enhancement</SelectItem>
-                  <SelectItem value="Agreement">Agreement</SelectItem>
-                  <SelectItem value="Awareness">Awareness</SelectItem>
-                </SelectContent>
-              </Select>
+              {/* Check if current type is still allowed, otherwise show read-only */}
+              {!allowedTypes.includes(formData.projectType) && !permissionsLoading ? (
+                <>
+                  <Input value={formData.projectType} disabled className="bg-muted" />
+                  <p className="text-xs text-amber-600">
+                    You no longer have permission to change this project type. Contact admin to modify.
+                  </p>
+                </>
+              ) : (
+                <Select
+                  value={formData.projectType}
+                  onValueChange={(value) => setFormData({ ...formData, projectType: value })}
+                  disabled={permissionsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={permissionsLoading ? "Loading..." : "Select project type"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allowedTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {settings && (formData.projectType === "Inspiration" || formData.projectType === "Enhancement") && (
                 <p className="text-sm text-muted-foreground">
                   Maximum funding amount: {(formData.projectType === "Inspiration" 

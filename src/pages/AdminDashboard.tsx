@@ -6,7 +6,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminProjectsGrid } from "@/components/AdminProjectsGrid";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Shield, Save } from "lucide-react";
+import { Shield, Save, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { UserPermissionsTab } from "@/components/admin/UserPermissionsTab";
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { isAdmin, isLoading } = useIsAdmin();
@@ -128,6 +129,10 @@ const AdminDashboard = () => {
         <Tabs defaultValue="projects" className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="permissions" className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              User Permissions
+            </TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -137,6 +142,10 @@ const AdminDashboard = () => {
                 <AdminProjectsGrid />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="permissions">
+            <UserPermissionsTab />
           </TabsContent>
 
           <TabsContent value="settings">
