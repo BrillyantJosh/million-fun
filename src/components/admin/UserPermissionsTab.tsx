@@ -9,7 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Search, Loader2, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { searchNostrProfiles } from "@/lib/nostrSearch";
 
 type ProjectTypeRole = 'enhancement' | 'agreement' | 'awareness';
 
@@ -19,6 +21,13 @@ interface UserRole {
   project_type: ProjectTypeRole;
   created_at: string;
   created_by: string | null;
+}
+
+interface NostrSearchResult {
+  pubkey: string;
+  name?: string;
+  display_name?: string;
+  picture?: string;
 }
 
 const PROJECT_TYPES: { value: ProjectTypeRole; label: string }[] = [
@@ -33,6 +42,13 @@ export const UserPermissionsTab = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [newNostrHexId, setNewNostrHexId] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<ProjectTypeRole[]>([]);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<NostrSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<NostrSearchResult | null>(null);
 
   const fetchRoles = async () => {
     setIsLoading(true);
@@ -60,6 +76,43 @@ export const UserPermissionsTab = () => {
     fetchRoles();
   }, []);
 
+  // Debounced search
+  useEffect(() => {
+    const searchTimer = setTimeout(async () => {
+      if (searchQuery.length >= 2) {
+        setIsSearching(true);
+        setShowSearchResults(true);
+        try {
+          const results = await searchNostrProfiles(searchQuery);
+          setSearchResults(results);
+        } catch (err) {
+          console.error('Search error:', err);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(searchTimer);
+  }, [searchQuery]);
+
+  const handleSelectUser = (user: NostrSearchResult) => {
+    setSelectedUser(user);
+    setNewNostrHexId(user.pubkey);
+    setSearchQuery("");
+    setShowSearchResults(false);
+    setSearchResults([]);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUser(null);
+    setNewNostrHexId("");
+  };
+
   const handleTypeToggle = (type: ProjectTypeRole) => {
     setSelectedTypes(prev => 
       prev.includes(type) 
@@ -72,7 +125,7 @@ export const UserPermissionsTab = () => {
     if (!newNostrHexId.trim()) {
       toast({
         title: "Validation Error",
-        description: "Please enter a Nostr Hex ID",
+        description: "Please enter a Nostr Hex ID or search for a user",
         variant: "destructive",
       });
       return;
@@ -130,6 +183,7 @@ export const UserPermissionsTab = () => {
       // Reset form
       setNewNostrHexId("");
       setSelectedTypes([]);
+      setSelectedUser(null);
       
       // Refresh list
       fetchRoles();
@@ -206,19 +260,106 @@ export const UserPermissionsTab = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* User Search */}
           <div className="space-y-2">
-            <Label htmlFor="nostrHexId">Nostr Hex ID</Label>
-            <Input
-              id="nostrHexId"
-              value={newNostrHexId}
-              onChange={(e) => setNewNostrHexId(e.target.value)}
-              placeholder="e.g., 18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">
-              64-character hexadecimal public key of the user
-            </p>
+            <Label>Search User by Name</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or display name..."
+                className="pl-10"
+              />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            
+            {/* Search Results Dropdown */}
+            {showSearchResults && (
+              <div className="relative">
+                <div className="absolute z-10 w-full bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {isSearching ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                      Searching relays...
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      No users found matching "{searchQuery}"
+                    </div>
+                  ) : (
+                    searchResults.map((user) => (
+                      <button
+                        key={user.pubkey}
+                        onClick={() => handleSelectUser(user)}
+                        className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors text-left"
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user.picture} alt={user.name || 'User'} />
+                          <AvatarFallback>
+                            <User className="h-4 w-4" />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">
+                            {user.display_name || user.name || 'Unknown'}
+                          </p>
+                          {user.name && user.display_name && user.name !== user.display_name && (
+                            <p className="text-xs text-muted-foreground truncate">@{user.name}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground font-mono">
+                            {user.pubkey.substring(0, 12)}...{user.pubkey.substring(user.pubkey.length - 6)}
+                          </p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Selected User Display */}
+          {selectedUser && (
+            <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={selectedUser.picture} alt={selectedUser.name || 'User'} />
+                <AvatarFallback>
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-medium">
+                  {selectedUser.display_name || selectedUser.name || 'Unknown User'}
+                </p>
+                <p className="text-xs text-muted-foreground font-mono">
+                  {selectedUser.pubkey}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleClearSelection}>
+                Clear
+              </Button>
+            </div>
+          )}
+
+          {/* Manual Hex ID Input */}
+          {!selectedUser && (
+            <div className="space-y-2">
+              <Label htmlFor="nostrHexId">Or Enter Nostr Hex ID Manually</Label>
+              <Input
+                id="nostrHexId"
+                value={newNostrHexId}
+                onChange={(e) => setNewNostrHexId(e.target.value)}
+                placeholder="e.g., 18a908e89354fb2d142d864bfcbea7a7ed4486c8fb66b746fcebe66ed372115e"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                64-character hexadecimal public key of the user
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Project Types</Label>
@@ -244,7 +385,7 @@ export const UserPermissionsTab = () => {
           <Button onClick={handleAddPermission} disabled={isSaving}>
             {isSaving ? (
               <>
-                <Plus className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Adding...
               </>
             ) : (
