@@ -11,6 +11,7 @@ import { convertWifToIds } from "@/lib/lanaWallet";
 import { saveUserSession } from "@/lib/auth";
 import { fetchNostrProfile } from "@/lib/nostrProfile";
 import { useNostrConnection } from "@/hooks/useNostrConnection";
+import { NostrProfile, NostrProfileTags } from "@/types/nostrProfile";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -126,23 +127,36 @@ const Login = () => {
       });
       
       const profileData = await fetchNostrProfile(result.nostrHexId);
-      
-      if (!profileData) {
-        toast.dismiss(loadingToast);
-        toast.error("No profile found for this account. Please create a profile first.");
-        setIsLoggingIn(false);
-        return;
-      }
 
-      // Step 3: Save session with profile data
+      // Step 3: Save session with profile data (allow login even without profile)
+      const defaultProfile: NostrProfile = {
+        name: '',
+        display_name: '',
+        about: '',
+        location: '',
+        country: '',
+        currency: 'USD',
+        lanoshi2lash: '300000000',
+        whoAreYou: 'Human',
+        orgasmic_profile: ''
+      };
+      
+      const defaultTags: NostrProfileTags = {
+        lang: 'en',
+        interests: [],
+        intimacy: []
+      };
+
       saveUserSession({
         privateKey: wif,
         ...result,
-        profile: profileData.profile,
-        profileTags: profileData.tags
+        profile: profileData?.profile || defaultProfile,
+        profileTags: profileData?.tags || defaultTags
       });
       toast.dismiss(loadingToast);
-      toast.success(`Welcome back, ${profileData.profile.display_name}!`);
+      
+      const displayName = profileData?.profile?.display_name || profileData?.profile?.name || 'User';
+      toast.success(`Welcome back, ${displayName}!`);
       navigate("/dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
