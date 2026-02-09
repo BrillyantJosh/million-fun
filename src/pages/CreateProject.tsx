@@ -43,6 +43,7 @@ const CreateProject = () => {
     walletId: "",
     responsibilityStatement: "",
     projectType: "Inspiration",
+    whatType: "",
     status: "draft",
     videoUrl: "",
     images: []
@@ -160,7 +161,7 @@ const CreateProject = () => {
     }
 
     if (!formData.title || !formData.shortDesc || !formData.longDesc || 
-        !formData.fiatGoal || !formData.walletId) {
+        !formData.fiatGoal || !formData.walletId || !formData.whatType) {
       toast({ 
         title: "Validation Error", 
         description: "Please fill in all required fields", 
@@ -210,6 +211,7 @@ const CreateProject = () => {
         walletId: "",
         responsibilityStatement: "",
         projectType: "Inspiration",
+        whatType: "",
         status: "draft",
         videoUrl: "",
         images: []
@@ -352,6 +354,24 @@ const CreateProject = () => {
                       No funding limit for this project type
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="whatType">What is Project all About? *</Label>
+                  <Select
+                    value={formData.whatType}
+                    onValueChange={(value) => setFormData({ ...formData, whatType: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select what project is about" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="IamAllowingMyself">I am Allowing Myself</SelectItem>
+                      <SelectItem value="EmbraceEnough">Embracing Enough</SelectItem>
+                      <SelectItem value="DigitalBeing">Digital Being</SelectItem>
+                      <SelectItem value="ProductOrService">Product Or Service</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">

@@ -23,6 +23,7 @@ export interface NostrProject {
   responsibilityStatement?: string;
   participants?: string[]; // Array of participant pubkeys
   projectType?: string;
+  whatType?: string;
   status?: ProjectStatus;
 }
 
@@ -167,6 +168,7 @@ export const useUserProjects = () => {
                 responsibilityStatement: getTag("responsibility_statement"),
                 participants: getAllTags("p", "participant"),
                 projectType: getTag("project_type"),
+                whatType: getTag("what_type"),
                 status: (getTag("status") as ProjectStatus) || 'draft'
               };
             });

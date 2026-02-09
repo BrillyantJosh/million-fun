@@ -21,6 +21,7 @@ export interface ProjectData {
   walletId: string;
   responsibilityStatement: string;
   projectType: string;
+  whatType?: string;
   status?: ProjectStatus;
   videoUrl?: string;
   images?: string[];
@@ -60,6 +61,7 @@ export async function publishProjectToNostr(
     ["wallet", projectData.walletId],
     ["responsibility_statement", projectData.responsibilityStatement],
     ["project_type", projectData.projectType],
+    ...(projectData.whatType ? [["what_type", projectData.whatType]] : []),
     ["status", status],
     ["p", ownerNostrHex, "owner"],
     
