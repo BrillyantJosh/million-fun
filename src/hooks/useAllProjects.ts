@@ -21,6 +21,7 @@ export interface NostrProject {
   createdAt: number;
   responsibilityStatement?: string;
   projectType?: string;
+  whatType?: string;
   status?: ProjectStatus;
 }
 
@@ -128,6 +129,7 @@ export const useAllProjects = (includeBlocked = false) => {
               createdAt: event.created_at,
               responsibilityStatement: getTag("responsibility_statement"),
               projectType: getTag("project_type"),
+              whatType: getTag("what_type"),
               status: (getTag("status") as ProjectStatus) || 'draft',
             });
           } catch (err) {

@@ -70,9 +70,10 @@ export const EditProjectDialog = ({
     currency: currentProject.currency,
     walletId: currentProject.walletId,
     responsibilityStatement: responsibilityStatement,
-    projectType: currentProject.projectType || "Inspiration",
-    status: currentProject.status || "draft",
-    videoUrl: currentProject.videoUrl || "",
+      projectType: currentProject.projectType || "Inspiration",
+      whatType: currentProject.whatType || "",
+      status: currentProject.status || "draft",
+      videoUrl: currentProject.videoUrl || "",
     images: currentProject.galleryImages || [],
     coverImage: currentProject.coverImage || ""
   });
@@ -159,7 +160,8 @@ export const EditProjectDialog = ({
           createdAt: latestEvent.created_at,
           responsibilityStatement: getTag("responsibility_statement"),
           participants: participantPubkeys,
-          projectType: getTag("project_type")
+          projectType: getTag("project_type"),
+          whatType: getTag("what_type")
         };
 
         console.log('✅ Fresh project data fetched:', updatedProject);
@@ -188,6 +190,7 @@ export const EditProjectDialog = ({
       walletId: currentProject.walletId,
       responsibilityStatement: responsibilityStatement,
       projectType: currentProject.projectType || "Inspiration",
+      whatType: currentProject.whatType || "",
       status: currentProject.status || "draft",
       videoUrl: currentProject.videoUrl || "",
       images: currentProject.galleryImages || [],
@@ -562,6 +565,24 @@ export const EditProjectDialog = ({
                   No funding limit for this project type
                 </p>
               )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="whatType">What is Project all About? *</Label>
+              <Select
+                value={formData.whatType}
+                onValueChange={(value) => setFormData({ ...formData, whatType: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select what project is about" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IamAllowingMyself">I am Allowing Myself</SelectItem>
+                  <SelectItem value="EmbraceEnough">Embracing Enough</SelectItem>
+                  <SelectItem value="DigitalBeing">Digital Being</SelectItem>
+                  <SelectItem value="ProductOrService">Product Or Service</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Project Status Section */}
