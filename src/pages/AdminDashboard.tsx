@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminProjectsGrid } from "@/components/AdminProjectsGrid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Shield, Save, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -161,6 +162,32 @@ const AdminDashboard = () => {
                     </p>
                   </div>
                 )}
+
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="disable-projects" className="text-base font-medium">Disable New Projects</Label>
+                    <p className="text-sm text-muted-foreground">
+                      When enabled, users cannot create new projects
+                    </p>
+                  </div>
+                  <Switch
+                    id="disable-projects"
+                    checked={settings?.disable_new_projects ?? false}
+                    onCheckedChange={async (checked) => {
+                      if (!settings) return;
+                      const { error } = await supabase
+                        .from("app_settings")
+                        .update({ disable_new_projects: checked })
+                        .eq("id", settings.id);
+                      if (error) {
+                        toast({ title: "Error", description: "Failed to update setting", variant: "destructive" });
+                      } else {
+                        toast({ title: "Success", description: checked ? "New projects disabled" : "New projects enabled" });
+                        refetch();
+                      }
+                    }}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="financing">Financing Inspirations (Max Amount)</Label>
                   <Input

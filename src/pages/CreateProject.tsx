@@ -244,7 +244,20 @@ const CreateProject = () => {
           Back to Dashboard
         </Button>
 
-        {publishResults ? (
+        {settings?.disable_new_projects ? (
+          <Card>
+            <CardContent className="py-16 text-center space-y-4">
+              <XCircle className="h-12 w-12 text-destructive mx-auto" />
+              <h2 className="text-xl font-bold text-foreground">Project Creation Disabled</h2>
+              <p className="text-muted-foreground">
+                Creating new projects is currently disabled by the administrator.
+              </p>
+              <Button onClick={() => navigate('/dashboard')}>
+                Back to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        ) : publishResults ? (
           <Card>
             <CardHeader>
               <CardTitle>Publishing Report</CardTitle>

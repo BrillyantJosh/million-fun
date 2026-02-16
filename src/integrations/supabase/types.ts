@@ -35,6 +35,7 @@ export type Database = {
       app_settings: {
         Row: {
           created_at: string
+          disable_new_projects: boolean
           enhancing_current_system: number
           financing_inspirations: number
           id: string
@@ -44,6 +45,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          disable_new_projects?: boolean
           enhancing_current_system?: number
           financing_inspirations?: number
           id?: string
@@ -53,6 +55,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          disable_new_projects?: boolean
           enhancing_current_system?: number
           financing_inspirations?: number
           id?: string
