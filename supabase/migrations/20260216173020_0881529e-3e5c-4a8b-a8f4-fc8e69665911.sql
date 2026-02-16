@@ -1,0 +1,1 @@
+ALTER TABLE public.app_settings ADD COLUMN disable_new_projects boolean NOT NULL DEFAULT false;

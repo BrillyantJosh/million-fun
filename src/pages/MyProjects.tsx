@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { getCacheBreakingImageUrl } from "@/lib/imageUtils";
 const MyProjects = () => {
   const navigate = useNavigate();
   const { projects, loading, error } = useUserProjects();
+  const { data: settings } = useAppSettings();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<NostrProject | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -97,13 +99,15 @@ const MyProjects = () => {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
-          <Button
-            onClick={() => navigate('/create-project')}
-            className="gap-2"
-          >
-            <Plus className="h-5 w-5" />
-            Create New Project
-          </Button>
+          {!settings?.disable_new_projects && (
+            <Button
+              onClick={() => navigate('/create-project')}
+              className="gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              Create New Project
+            </Button>
+          )}
         </div>
 
         <div className="mb-8">
