@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { QrCode, Key, Coins, Loader2, Wifi, WifiOff } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import { convertWifToIds } from "@/lib/lanaWallet";
 import { saveUserSession } from "@/lib/auth";
 import { fetchNostrProfile } from "@/lib/nostrProfile";
 import { useNostrConnection } from "@/hooks/useNostrConnection";
+import { useQRScanner } from "@/hooks/useQRScanner";
 import { NostrProfile, NostrProfileTags } from "@/types/nostrProfile";
 
 const Login = () => {
@@ -18,90 +18,42 @@ const Login = () => {
   const [privateKey, setPrivateKey] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerDivRef = useRef<HTMLDivElement>(null);
+  const { videoRef, canvasRef, startScanning: startQR, cleanup } = useQRScanner();
 
-  // Initialize Nostr connection before allowing login
   const { loading: nostrLoading, error: nostrError, relayStatuses } = useNostrConnection();
-  
+
   const connectedRelays = relayStatuses.filter(r => r.connected).length;
   const isConnected = connectedRelays > 0 || !nostrLoading;
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-      }
-    };
-  }, []);
+    return () => { cleanup(); };
+  }, [cleanup]);
 
   const startScanning = async () => {
     setIsScanning(true);
-
-    // CRITICAL: 100ms delay to ensure DOM is ready
-    setTimeout(async () => {
-      try {
-        // 1. Enumerate cameras
-        const cameras = await Html5Qrcode.getCameras();
-        if (!cameras || cameras.length === 0) {
-          toast.error("No camera found on this device");
-          setIsScanning(false);
-          return;
-        }
-
-        // 2. Select camera (priority: back camera)
-        let selectedCamera = cameras[0];
-        if (cameras.length > 1) {
-          const backCamera = cameras.find(camera => camera.label.toLowerCase().includes('back') || camera.label.toLowerCase().includes('rear'));
-          if (backCamera) {
-            selectedCamera = backCamera;
-          }
-        }
-
-        // 3. Initialize scanner
-        const scanner = new Html5Qrcode("qr-reader-login");
-        scannerRef.current = scanner;
-
-        // 4. Start scanner
-        await scanner.start(selectedCamera.id, {
-          fps: 10,
-          qrbox: {
-            width: 250,
-            height: 250
-          }
-        }, decodedText => {
-          setPrivateKey(decodedText);
-          stopScanning();
-          toast.success("QR code scanned successfully!");
-        }, errorMessage => {
-          // Ignore scan errors during operation
-        });
-      } catch (error: any) {
-        console.error("Error starting QR scanner:", error);
+    try {
+      await startQR((data) => {
+        setPrivateKey(data);
         setIsScanning(false);
-        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-          toast.error("Camera permission denied. Please allow camera access in your browser settings.");
-        } else if (error.name === "NotFoundError") {
-          toast.error("No camera found on this device");
-        } else if (error.name === "NotReadableError") {
-          toast.error("Camera is already in use by another application");
-        } else {
-          toast.error(`Error starting camera: ${error.message || "Unknown error"}`);
-        }
-      }
-    }, 100);
-  };
-
-  const stopScanning = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (error) {
-        console.error("Error stopping scanner:", error);
+        toast.success("QR code scanned successfully!");
+      });
+    } catch (err: any) {
+      console.error("Error starting QR scanner:", err);
+      setIsScanning(false);
+      if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+        toast.error("Camera permission denied. Please allow camera access in your browser settings.");
+      } else if (err.name === "NotFoundError") {
+        toast.error("No camera found on this device");
+      } else if (err.name === "NotReadableError") {
+        toast.error("Camera is already in use by another application");
+      } else {
+        toast.error(`Error starting camera: ${err.message || "Unknown error"}`);
       }
     }
+  };
+
+  const stopScanning = () => {
+    cleanup();
     setIsScanning(false);
   };
 
@@ -253,7 +205,16 @@ const Login = () => {
               </Button>
             ) : (
               <div className="space-y-4">
-                <div id="qr-reader-login" ref={scannerDivRef} className="rounded-lg overflow-hidden border-2 border-primary" />
+                <div className="relative rounded-lg overflow-hidden border-2 border-primary aspect-square bg-black">
+                  <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-4 left-4 w-10 h-10 border-l-4 border-t-4 border-primary rounded-tl-lg" />
+                    <div className="absolute top-4 right-4 w-10 h-10 border-r-4 border-t-4 border-primary rounded-tr-lg" />
+                    <div className="absolute bottom-4 left-4 w-10 h-10 border-l-4 border-b-4 border-primary rounded-bl-lg" />
+                    <div className="absolute bottom-4 right-4 w-10 h-10 border-r-4 border-b-4 border-primary rounded-br-lg" />
+                  </div>
+                </div>
                 <Button type="button" variant="destructive" onClick={stopScanning} className="w-full">
                   Stop Scanning
                 </Button>

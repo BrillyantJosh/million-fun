@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
@@ -17,7 +17,7 @@ import type { LanaSystemParameters } from "@/types/nostr";
 import { SimplePool, type Filter } from "nostr-tools";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Html5Qrcode } from "html5-qrcode";
+import { useQRScanner } from "@/hooks/useQRScanner";
 
 const DonatePage = () => {
   const navigate = useNavigate();
@@ -45,8 +45,7 @@ const DonatePage = () => {
   const [showWifDialog, setShowWifDialog] = useState(false);
   const [wifKey, setWifKey] = useState("");
   const [showQrScanner, setShowQrScanner] = useState(false);
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const scannerDivRef = useRef<HTMLDivElement>(null);
+  const { videoRef, canvasRef, startScanning: startQR, cleanup: cleanupQR } = useQRScanner();
 
   useEffect(() => {
     const session = getUserSession();
@@ -432,100 +431,33 @@ const DonatePage = () => {
 
   // Cleanup scanner on unmount or dialog close
   useEffect(() => {
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
-      }
-    };
-  }, []);
+    return () => { cleanupQR(); };
+  }, [cleanupQR]);
 
   const startQrScanner = async () => {
     setShowQrScanner(true);
-    
-    // 100ms delay to ensure DOM is ready
-    setTimeout(async () => {
-      try {
-        // 1. Enumerate cameras
-        const cameras = await Html5Qrcode.getCameras();
-        
-        if (!cameras || cameras.length === 0) {
-          toast({
-            title: "No Camera Found",
-            description: "No camera found on this device",
-            variant: "destructive"
-          });
-          setShowQrScanner(false);
-          return;
-        }
-
-        // 2. Select camera (priority: back camera)
-        let selectedCamera = cameras[0];
-        if (cameras.length > 1) {
-          const backCamera = cameras.find(camera => 
-            camera.label.toLowerCase().includes('back') || 
-            camera.label.toLowerCase().includes('rear')
-          );
-          if (backCamera) {
-            selectedCamera = backCamera;
-          }
-        }
-
-        // 3. Initialize scanner
-        const scanner = new Html5Qrcode("qr-reader-wif");
-        scannerRef.current = scanner;
-
-        // 4. Start scanner
-        await scanner.start(
-          selectedCamera.id,
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-          },
-          (decodedText) => {
-            setWifKey(decodedText);
-            stopQrScanner();
-            toast({
-              title: "QR Code Scanned",
-              description: "WIF key loaded successfully"
-            });
-          },
-          () => {
-            // Ignore scan errors during operation
-          }
-        );
-      } catch (error: any) {
-        console.error("Error starting QR scanner:", error);
+    try {
+      await startQR((data) => {
+        setWifKey(data);
         setShowQrScanner(false);
-        
-        let errorMessage = "Unknown error";
-        if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-          errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
-        } else if (error.name === "NotFoundError") {
-          errorMessage = "No camera found on this device";
-        } else if (error.name === "NotReadableError") {
-          errorMessage = "Camera is already in use by another application";
-        } else {
-          errorMessage = error.message || "Unknown error occurred";
-        }
-        
         toast({
-          title: "Scanner Error",
-          description: errorMessage,
-          variant: "destructive"
+          title: "QR Code Scanned",
+          description: "WIF key loaded successfully"
         });
-      }
-    }, 100);
+      });
+    } catch (err: any) {
+      console.error("Error starting QR scanner:", err);
+      setShowQrScanner(false);
+      toast({
+        title: "Scanner Error",
+        description: err.message || "Unknown error occurred",
+        variant: "destructive"
+      });
+    }
   };
 
-  const stopQrScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current = null;
-      } catch (error) {
-        console.error("Error stopping scanner:", error);
-      }
-    }
+  const stopQrScanner = () => {
+    cleanupQR();
     setShowQrScanner(false);
   };
 
@@ -736,11 +668,16 @@ const DonatePage = () => {
                 </>
               ) : (
                 <div className="space-y-4">
-                  <div
-                    id="qr-reader-wif"
-                    ref={scannerDivRef}
-                    className="rounded-lg overflow-hidden border-2 border-primary"
-                  />
+                  <div className="relative rounded-lg overflow-hidden border-2 border-primary aspect-square bg-black">
+                    <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+                    <canvas ref={canvasRef} className="hidden" />
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-4 left-4 w-10 h-10 border-l-4 border-t-4 border-primary rounded-tl-lg" />
+                      <div className="absolute top-4 right-4 w-10 h-10 border-r-4 border-t-4 border-primary rounded-tr-lg" />
+                      <div className="absolute bottom-4 left-4 w-10 h-10 border-l-4 border-b-4 border-primary rounded-bl-lg" />
+                      <div className="absolute bottom-4 right-4 w-10 h-10 border-r-4 border-b-4 border-primary rounded-br-lg" />
+                    </div>
+                  </div>
                   <Button
                     type="button"
                     variant="destructive"
