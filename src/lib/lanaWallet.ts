@@ -78,36 +78,46 @@ function base58Decode(encoded: string): Uint8Array {
 }
 
 // Convert WIF to private key hex
-async function wifToPrivateKey(wif: string): Promise<string> {
+async function wifToPrivateKey(wif: string): Promise<{ privateKeyHex: string; isCompressed: boolean }> {
   const decoded = base58Decode(wif);
   const payload = decoded.slice(0, -4);
   const checksum = decoded.slice(-4);
-  
+
   const hash = await sha256d(payload);
   const expectedChecksum = hash.slice(0, 4);
-  
+
   for (let i = 0; i < 4; i++) {
     if (checksum[i] !== expectedChecksum[i]) {
       throw new Error('Invalid WIF checksum');
     }
   }
-  
-  if (payload[0] !== 0xb0) {
+
+  // Accept both: 0xb0 (Dominate/uncompressed, prefix '6') and 0x41 (Staking/compressed, prefix 'T')
+  if (payload[0] !== 0xb0 && payload[0] !== 0x41) {
     throw new Error('Invalid WIF prefix');
   }
-  
+
+  const isCompressed = payload.length === 34 && payload[33] === 0x01;
   const privateKey = payload.slice(1, 33);
-  return bytesToHex(privateKey);
+  return { privateKeyHex: bytesToHex(privateKey), isCompressed };
 }
 
-// Generate uncompressed public key
+// Generate uncompressed public key (65 bytes: 04 + x + y)
 function generatePublicKey(privateKeyHex: string): string {
   const keyPair = ec.keyFromPrivate(privateKeyHex);
   const pubKeyPoint = keyPair.getPublic();
-  
-  return "04" + 
-         pubKeyPoint.getX().toString(16).padStart(64, '0') + 
+
+  return "04" +
+         pubKeyPoint.getX().toString(16).padStart(64, '0') +
          pubKeyPoint.getY().toString(16).padStart(64, '0');
+}
+
+// Generate compressed public key (33 bytes: 02/03 + x)
+function generateCompressedPublicKey(privateKeyHex: string): string {
+  const keyPair = ec.keyFromPrivate(privateKeyHex);
+  const pubKeyPoint = keyPair.getPublic();
+  const prefix = pubKeyPoint.getY().isEven() ? "02" : "03";
+  return prefix + pubKeyPoint.getX().toString(16).padStart(64, '0');
 }
 
 // Generate Nostr public key (x-only)
@@ -138,14 +148,20 @@ function hexToNpub(hexPubKey: string): string {
 
 // Main conversion function
 export async function convertWifToIds(wif: string) {
-  const privateKeyHex = await wifToPrivateKey(wif);
-  const publicKeyHex = generatePublicKey(privateKeyHex);
+  const { privateKeyHex, isCompressed } = await wifToPrivateKey(wif);
+  const uncompressedPubKey = generatePublicKey(privateKeyHex);
+  const compressedPubKey = generateCompressedPublicKey(privateKeyHex);
   const nostrHexId = deriveNostrPublicKey(privateKeyHex);
-  const walletId = await generateLanaAddress(publicKeyHex);
+  const walletIdCompressed = await generateLanaAddress(compressedPubKey);
+  const walletIdUncompressed = await generateLanaAddress(uncompressedPubKey);
   const nostrNpubId = hexToNpub(nostrHexId);
-  
+  const walletId = isCompressed ? walletIdCompressed : walletIdUncompressed;
+
   return {
     walletId,
+    walletIdCompressed,
+    walletIdUncompressed,
+    isCompressed,
     nostrHexId,
     nostrNpubId,
     privateKeyHex
